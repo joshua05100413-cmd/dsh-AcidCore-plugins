@@ -1,0 +1,9 @@
+# dsh-composer-meter bundle patch.
+#
+# One insert mounts the Host half. The browser half is declared by
+# package.json `dsh.client` and binds to the row whose name is the bare
+# package name, so the id below is the only placeholder to keep in sync.
+- insert:
+    - id: composer-meter
+      name: 'dsh-composer-meter'
+      config: {}

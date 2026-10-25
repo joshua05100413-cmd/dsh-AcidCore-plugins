@@ -1,0 +1,18 @@
+# scratch & local state — never published
+_recon/
+
+# install artifacts
+node_modules/
+*.bak
+*.bak-*
+*.tgz
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.log
+
+# local caches for the theme tooling
+.cache/

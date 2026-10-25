@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "title": "输入计量",
+    "description": "在输入框下方实时显示草稿字数与预估 token 数（估算值，按中文 1 字 ≈ 1 token、其它字符 ≈ 3.5 字符/token 粗略换算）。"
+  },
+  "chars": "字",
+  "tokens": "tokens",
+  "estimate": "≈",
+  "hint": "估算值，实际以模型分词器为准。"
+}

@@ -1,0 +1,35 @@
+{
+  "name": "dsh-acid-core",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Acid graphics layer for the DSH Web shell: WebGL wireframe crystal backdrop, physics-sandbox HUD bound to shader uniforms, and an Acid-Mono token layer.",
+  "main": "./index.js",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./locale/*.json": "./locale/*.json",
+    "./icon": "./icon.svg"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "cordis.patch.yml",
+    "locale/*.json",
+    "icon.svg"
+  ],
+  "dsh": {
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-theme"
+      ]
+    }
+  },
+  "license": "MIT"
+}

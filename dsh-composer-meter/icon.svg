@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" width="32" height="32" role="img" aria-label="Composer Meter">
+  <rect x="3" y="5" width="26" height="22" rx="6" fill="#2f6fd0"/>
+  <path d="M9 11.5h14M9 16h10.5M9 20.5h6" stroke="#eaf2ff" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="24.5" cy="20.5" r="3.2" fill="#eaf2ff"/>
+</svg>

@@ -1,0 +1,10 @@
+{
+  "meta": {
+    "title": "Composer Meter",
+    "description": "Live character count and a rough token estimate for the draft, under the composer."
+  },
+  "chars": "chars",
+  "tokens": "tokens",
+  "estimate": "≈",
+  "hint": "Rough estimate; the model tokenizer decides the real count."
+}
