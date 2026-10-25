@@ -129,7 +129,14 @@ if (/^\s*\[class\*="_primary"\]/m.test(source)) problems.push('unscoped [class*=
 // ── host half ───────────────────────────────────────────────────────────────
 const host = await import(pathToFileURL(path.join(here, 'index.js')).href)
 if (typeof host.apply !== 'function') problems.push('index.js: apply export missing')
-else host.apply()
+else {
+  const routes = []
+  const serverCtx = { effect: (run) => run(), webServer: { register: (route) => { routes.push(route); return () => {} } } }
+  host.apply({ inject: (_names, run) => run(serverCtx) })
+  for (const expected of ['/acid-core/wallpapers', '/acid-core/wallpaper', '/acid-core/open-wallpapers', '/acid-core/videos', '/acid-core/video', '/acid-core/open-videos']) {
+    if (!routes.some((route) => route.path === expected && typeof route.handler === 'function')) problems.push(`missing host route ${expected}`)
+  }
+}
 
 // ── browser half ────────────────────────────────────────────────────────────
 new Function('window', 'document', 'navigator', source)(globalThis.window, globalThis.document, globalThis.navigator)
@@ -157,11 +164,17 @@ const themeListeners = []
 let effectCount = 0
 let preference = 'system'
 
+// The host ships a complete light alias palette; the stub reproduces its shape
+// so the bundle's light palette can be built from it offline.
+const LIGHT_STUB = Object.fromEntries(
+  Object.keys(test.THEME_BASE).map((name) => [name, name === '--dsw-alias-bg-base' ? '#ffffff' : '#f5f5f5']),
+)
+
 const STOCK_THEMES = [
   {
     id: 'light',
     colorScheme: 'light',
-    tokens: { '--dsw-alias-bg-base': '#ffffff', '--dsw-alias-bg-layer-3': '#f5f5f5', '--dsw-alias-label-primary': '#0f0f0f', '--dsw-alias-state-business-primary': '#3964fe' },
+    tokens: LIGHT_STUB,
   },
   {
     id: 'dark',
@@ -221,7 +234,7 @@ const ctx = {
         return () => {}
       } } })
     }
-    if (names.includes('theme')) run({ theme: themeService })
+    if (names.includes('theme')) run({ ...ctx, theme: themeService })
     if (names.includes('slots')) run({ slots })
   },
 }
@@ -234,13 +247,20 @@ try {
 
 if (effectCount === 0) problems.push('apply() registered no effect')
 if (stylesInjected !== 1) problems.push(`expected 1 injected stylesheet, got ${stylesInjected}`)
-if (themeRegistrations.length !== 1) problems.push(`expected 1 registered theme, got ${themeRegistrations.length}`)
+const EXPECTED_THEMES = test?.THEME_SPECS?.length ?? 0
+if (EXPECTED_THEMES < 2) problems.push('browser half exposes no palette list')
+if (themeRegistrations.length !== EXPECTED_THEMES) {
+  problems.push(`expected ${EXPECTED_THEMES} registered themes, got ${themeRegistrations.length}`)
+}
+const themeIds = themeRegistrations.map((entry) => entry.id)
+if (new Set(themeIds).size !== themeIds.length) problems.push(`duplicate theme ids: ${themeIds.join(', ')}`)
+if (themeIds[0] !== 'acid-mono') problems.push(`first theme id "${themeIds[0]}" != acid-mono`)
 
 const slotNames = registrations.map((entry) => entry.options?.name)
-for (const expected of ['shell.overlay', 'conversation.header.leading', 'settings.section']) {
+for (const expected of ['shell.overlay', 'shell.bottom', 'conversation.header.leading', 'settings.section']) {
   if (!slotNames.includes(expected)) problems.push(`missing registration into ${expected}`)
 }
-if (registrations.length !== 3) problems.push(`expected 3 registrations, got ${registrations.length}`)
+if (registrations.length !== 4) problems.push(`expected 4 registrations, got ${registrations.length}`)
 for (const entry of registrations) {
   if (typeof entry.options?.id !== 'string' || typeof entry.options?.order !== 'number') {
     problems.push('every registration needs a string id and a numeric order')
@@ -248,100 +268,118 @@ for (const entry of registrations) {
 }
 
 // ── theme completeness ──────────────────────────────────────────────────────
+function channel(value) {
+  const c = value / 255
+  return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+}
+function luminance(hex) {
+  const clean = hex.replace('#', '').slice(0, 6)
+  const [r, g, b] = [0, 2, 4].map((i) => parseInt(clean.slice(i, i + 2), 16))
+  return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+}
+function contrast(a, b) {
+  const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m)
+  return (x + 0.05) / (y + 0.05)
+}
+function isHex(value) {
+  return typeof value === 'string' && /^#[0-9a-f]{6}/i.test(value)
+}
+
+// acid-mono keeps its exact contract; the other palettes are checked generically.
 const registered = themeRegistrations[0]
 if (registered !== undefined) {
+  const tokens = registered.tokens ?? {}
   if (registered.id !== 'acid-mono') problems.push(`theme id "${registered.id}" != acid-mono`)
   if (registered.colorScheme !== 'dark') problems.push(`theme colorScheme "${registered.colorScheme}" != dark`)
-  const tokens = registered.tokens ?? {}
-  const names = Object.keys(tokens)
-  const aliasNames = names.filter((name) => name.startsWith('--dsw-alias-'))
-  if (aliasNames.length < 100) problems.push(`theme has ${aliasNames.length} alias tokens: a partial theme leaves stock colours behind`)
-  // The non-alias keys are the ones a theme cannot reach through the alias
-  // family, and the ones that kept a light background: bubble, composer, menu,
-  // think gradients. They must be present or the user sees white-on-white.
-  for (const extra of ['--dsw-specific-bubble', '--dsw-specific-input-major', '--dsw-menu-surface-fill', '--dsw-linear-gradient-think']) {
-    if (!(extra in tokens)) problems.push(`theme is missing ${extra}: that surface would keep the stock light fill`)
-  }
-  for (const name of names) {
-    if (!/^--dsw-(?:alias|specific|menu|linear|elevation)-/.test(name)) problems.push(`theme token "${name}" is outside the reachable families`)
-    if (typeof tokens[name] !== 'string' || tokens[name] === '') problems.push(`theme token "${name}" has no value`)
-  }
   if (tokens['--dsw-alias-bg-base'] !== '#08090C') problems.push(`bg-base "${tokens['--dsw-alias-bg-base']}" != #08090C`)
   if (tokens['--dsw-alias-label-primary'] !== '#F1F5F9') problems.push(`label-primary "${tokens['--dsw-alias-label-primary']}" != #F1F5F9`)
-  if (tokens['--dsw-alias-state-business-primary'] !== '#CCFF00') problems.push('state-business-primary != #CCFF00')
   if (tokens['--dsw-alias-border-l1'] !== '#1E2330') problems.push('border-l1 != #1E2330')
   if (tokens['--dsw-alias-markdown-code-block'] !== '#0B0D12') problems.push('markdown-code-block != #0B0D12')
   if (!('--dsw-alias-label-primary-foreground' in tokens)) problems.push('missing label-primary-foreground: button labels would keep the stock colour')
+}
 
-  // Nothing may stay a bare white/black from the stock palette on a surface.
-  const whiteOnSurface = names.filter((name) => /(?:^|-)bg-|surface|card/.test(name) && /^#(?:fff|ffffff)$/i.test(tokens[name]))
-  if (whiteOnSurface.length > 0) problems.push(`surface tokens still pure white: ${whiteOnSurface.join(', ')}`)
+const ALLOWED = /state-business|brand-primary|button-info|link|deep-diving|document-selection|interactive-bg-hover-accent|specific-sidebar-nav-item-active-accent/
+const FORBIDDEN = /label-(?:primary|secondary|tertiary|dimmed|caption|base)|bg-base|bg-layer|markdown-|specific-bubble|specific-input/
+const SURFACES = ['--dsw-specific-bubble', '--dsw-specific-input-major', '--dsw-menu-surface-fill', '--dsw-alias-markdown-inline-code', '--dsw-alias-markdown-code-block']
 
-  // ── contrast ────────────────────────────────────────────────────────────
-  function channel(value) {
-    const c = value / 255
-    return c <= 0.03928 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+for (const entry of themeRegistrations) {
+  const spec = (test.THEME_SPECS ?? []).find((candidate) => candidate.id === entry.id)
+  if (spec === undefined) {
+    problems.push(`theme "${entry.id}" is not listed in THEME_SPECS`)
+    continue
   }
-  function luminance(hex) {
-    const clean = hex.replace('#', '').slice(0, 6)
-    const [r, g, b] = [0, 2, 4].map((i) => parseInt(clean.slice(i, i + 2), 16))
-    return 0.2126 * channel(r) + 0.7152 * channel(g) + 0.0722 * channel(b)
+  if (entry.colorScheme !== spec.scheme) problems.push(`theme "${entry.id}" scheme "${entry.colorScheme}" != "${spec.scheme}"`)
+  const tokens = entry.tokens ?? {}
+  const names = Object.keys(tokens)
+  const aliasNames = names.filter((name) => name.startsWith('--dsw-alias-'))
+  if (aliasNames.length < 100) problems.push(`theme "${entry.id}" has ${aliasNames.length} alias tokens: a partial theme leaves stock colours behind`)
+  for (const extra of ['--dsw-specific-bubble', '--dsw-specific-input-major', '--dsw-menu-surface-fill', '--dsw-linear-gradient-think']) {
+    if (!(extra in tokens)) problems.push(`theme "${entry.id}" is missing ${extra}: that surface would keep the stock fill`)
   }
-  function contrast(a, b) {
-    const [x, y] = [luminance(a), luminance(b)].sort((m, n) => n - m)
-    return (x + 0.05) / (y + 0.05)
+  for (const name of names) {
+    if (!/^--dsw-(?:alias|specific|menu|linear|elevation)-/.test(name)) problems.push(`theme "${entry.id}" token "${name}" is outside the reachable families`)
+    if (typeof tokens[name] !== 'string' || tokens[name] === '') problems.push(`theme "${entry.id}" token "${name}" has no value`)
   }
+  if (tokens['--dsw-alias-state-business-primary'] !== spec.accent) {
+    problems.push(`theme "${entry.id}" state-business-primary "${tokens['--dsw-alias-state-business-primary']}" != "${spec.accent}"`)
+  }
+  if (tokens['--dsw-alias-button-info-fill'] !== spec.accent) problems.push(`theme "${entry.id}" send button is not the accent`)
+  if (tokens['--dsw-alias-link'] !== spec.accent) problems.push(`theme "${entry.id}" link is not the accent`)
 
   const pairs = [
     ['primary on canvas', tokens['--dsw-alias-label-primary'], tokens['--dsw-alias-bg-base'], 12],
     ['primary on layer-1', tokens['--dsw-alias-label-primary'], tokens['--dsw-alias-bg-layer-1'], 12],
     ['secondary on canvas', tokens['--dsw-alias-label-secondary'], tokens['--dsw-alias-bg-base'], 4.5],
     ['secondary on layer-2', tokens['--dsw-alias-label-secondary'], tokens['--dsw-alias-bg-layer-2'], 4.5],
-    // The reported bug: the user bubble is painted from `--dsw-specific-bubble`,
-    // which no alias override reaches — light bubble + light text.
     ['bubble text on bubble fill', tokens['--dsw-alias-label-primary'], tokens['--dsw-specific-bubble'], 7],
     ['composer text on composer fill', tokens['--dsw-alias-label-primary'], tokens['--dsw-specific-input-major'], 7],
-    // Same class of bug, second instance: the inline-code chip is a background
-    // token, so a "text colour" value there yields light chips whose inherited
-    // label colour is also light.
     ['inline-code text on chip', tokens['--dsw-alias-label-primary'], tokens['--dsw-alias-markdown-inline-code'], 7],
     ['code text on code block', tokens['--dsw-alias-label-primary'], tokens['--dsw-alias-markdown-code-block'], 7],
     ['tertiary on canvas', tokens['--dsw-alias-label-tertiary'], tokens['--dsw-alias-bg-base'], 4.5],
+  ]
+  if (spec.scheme === 'dark') {
     // Inverted labels sit on bright fills, not on the canvas: that pair is the
     // meaningful one (the canvas pair is 1:1 by design).
-    ['inverted label on bright fill', tokens['--dsw-alias-label-primary-inverted'], '#E8EDF3', 12],
-  ]
+    pairs.push(['inverted label on bright fill', tokens['--dsw-alias-label-primary-inverted'], '#E8EDF3', 12])
+  } else {
+    // A light palette's inverted label is white on the accent fill.
+    pairs.push(['inverted label on accent fill', tokens['--dsw-alias-label-primary-inverted'], spec.accent, 4.5])
+    if (isHex(tokens['--dsw-alias-bg-base']) && luminance(tokens['--dsw-alias-bg-base']) < 0.5) {
+      problems.push(`light theme "${entry.id}" has a dark canvas (${tokens['--dsw-alias-bg-base']})`)
+    }
+    for (const name of SURFACES) {
+      const value = tokens[name]
+      if (typeof value === 'string' && value.startsWith('#') && luminance(value) < 0.5) {
+        problems.push(`light theme "${entry.id}" surface ${name} is dark (${value})`)
+      }
+    }
+  }
   for (const [label, fg, bg, floor] of pairs) {
     if (typeof fg !== 'string' || typeof bg !== 'string' || !fg.startsWith('#') || !bg.startsWith('#')) continue
     const ratio = contrast(fg, bg)
-    if (ratio < floor) problems.push(`contrast ${label}: ${ratio.toFixed(2)}:1 < ${floor}:1`)
+    if (ratio < floor) problems.push(`contrast ${label} (${entry.id}): ${ratio.toFixed(2)}:1 < ${floor}:1`)
   }
 
-  // A surface that stays bright under the acid theme is the exact failure the
-  // user reported ("white bubble, unreadable text").
-  for (const name of ['--dsw-specific-bubble', '--dsw-specific-input-major', '--dsw-menu-surface-fill', '--dsw-alias-markdown-inline-code', '--dsw-alias-markdown-code-block']) {
-    const value = tokens[name]
-    if (typeof value === 'string' && value.startsWith('#') && luminance(value) > 0.25) {
-      problems.push(`${name} is still a bright fill (${value})`)
+  if (spec.scheme === 'dark') {
+    // A surface that stays bright under a dark palette is the reported failure
+    // ("white bubble, unreadable text").
+    for (const name of SURFACES) {
+      const value = tokens[name]
+      if (typeof value === 'string' && value.startsWith('#') && luminance(value) > 0.25) {
+        problems.push(`${name} is still a bright fill (${value})`)
+      }
     }
   }
 
-  // Accent confinement: the user asked for the interactive family (send button,
-  // folder icons, links, sidebar CTA) to be acid, so the count is not the guard
-  // any more — the guard is that the saturated lime never lands on a reading
-  // surface or a body-text token.
-  const ACID = '#CCFF00'
-  const saturated = names.filter((name) => String(tokens[name]).toUpperCase().startsWith(ACID))
-  const ALLOWED = /state-business|brand-primary|button-info|link|deep-diving|document-selection|interactive-bg-hover-accent|specific-sidebar-nav-item-active-accent/
-  // Reading tokens are the ones body copy uses; the deep-diving label is a
-  // status shimmer, which the accent family legitimately covers.
-  const FORBIDDEN = /label-(?:primary|secondary|tertiary|dimmed|caption|base)|bg-base|bg-layer|markdown-|specific-bubble|specific-input/
+  // Accent confinement: the saturated accent may only land on the interactive
+  // family, never on a reading surface or a body-text token.
+  const saturated = names.filter((name) => String(tokens[name]).toUpperCase().startsWith(spec.accent.toUpperCase()))
   for (const name of saturated) {
-    if (!ALLOWED.test(name)) problems.push(`accent leaked onto ${name}`)
-    if (FORBIDDEN.test(name)) problems.push(`accent must not touch a reading token: ${name}`)
+    if (!ALLOWED.test(name)) problems.push(`accent leaked onto ${name} (${entry.id})`)
+    if (FORBIDDEN.test(name)) problems.push(`accent must not touch a reading token: ${name} (${entry.id})`)
   }
-  if (saturated.length < 3) problems.push(`accent family is too small (${saturated.length}): the interactive controls stay blue`)
-  if (!saturated.some((name) => name.includes('brand-primary-new-color'))) problems.push('brand send-button token is not acid')
+  if (saturated.length < 3) problems.push(`theme "${entry.id}" accent family is too small (${saturated.length})`)
+  if (!saturated.some((name) => name.includes('brand-primary-new-color'))) problems.push(`theme "${entry.id}" brand send-button token is not the accent`)
 }
 
 // ── geometry ────────────────────────────────────────────────────────────────
@@ -416,20 +454,24 @@ else {
   walk(rendered, (node) => {
     const props = node.props ?? {}
     if (props.className === 'dsh-acid-tile') tiles.push(props)
-    if (props.className === 'dsh-acid-range') sliders.push(props)
+    if (props.className === 'dsh-acid-range' && Object.keys(test.PARAM_SPEC).some((key) => props.id === `dsh-acid-${key}`)) sliders.push(props)
     if (props.role === 'switch') switches += 1
     if (props.className === 'dsh-acid-card-title') cardTitles += 1
   })
-  if (tiles.length !== 3) problems.push(`expected 3 theme tiles (light, dark, acid-mono), got ${tiles.length}`)
+  const expectedTiles = STOCK_THEMES.length + EXPECTED_THEMES
+  if (tiles.length !== expectedTiles) problems.push(`expected ${expectedTiles} theme tiles (stock + ${EXPECTED_THEMES} palettes), got ${tiles.length}`)
   for (const tile of tiles) {
     if (typeof tile.onClick !== 'function') problems.push('theme tile has no click handler')
   }
+  for (const spec of test.THEME_SPECS ?? []) {
+    if (!tiles.some((tile) => tile.title === spec.id)) problems.push(`missing theme tile for ${spec.id}`)
+  }
   if (sliders.length !== 3) problems.push(`expected 3 sliders, got ${sliders.length}`)
-  if (switches !== 1) problems.push(`expected 1 switch (backdrop), got ${switches}`)
-  if (cardTitles < 2) problems.push(`expected 2 cards (theme, crystal), got ${cardTitles}`)
+  if (switches !== 4) problems.push(`expected 4 switches (intro, backdrop, lettering, status strip), got ${switches}`)
+  if (cardTitles < 5) problems.push(`expected 5 cards (intro, theme, background, lettering, crystal), got ${cardTitles}`)
 
-  // Tile → theme service: clicking the acid tile must switch preference and
-  // arm the affordance layer; switching back must disarm it.
+  // Tile → theme service: clicking a palette must switch preference, arm the
+  // affordance layer with that palette id, and remember the id itself.
   const acidTile = tiles.find((tile) => tile.title === 'acid-mono')
   if (acidTile === undefined) problems.push('acid-mono tile missing')
   else {
@@ -438,28 +480,50 @@ else {
     if (globalThis.document.body.attributes['data-acid-theme'] !== 'on') {
       problems.push('the acid theme did not arm body[data-acid-theme="on"]')
     }
-    if (globalThis.window.localStorage.getItem('dsh.acid-core.theme') !== 'on') {
-      problems.push('the acid choice was not remembered for the next load')
+    if (globalThis.document.body.attributes['data-acid-theme-id'] !== 'acid-mono') {
+      problems.push('the palette id was not published to the body')
+    }
+    if (globalThis.window.localStorage.getItem('dsh.acid-core.theme') !== 'acid-mono') {
+      problems.push('the palette choice was not remembered for the next load')
+    }
+    const orangeTile = tiles.find((tile) => tile.title === 'acid-orange')
+    if (orangeTile === undefined) problems.push('acid-orange tile missing')
+    else {
+      orangeTile.onClick()
+      if (preference !== 'acid-orange') problems.push(`orange tile did not switch: preference=${preference}`)
+      if (globalThis.document.body.attributes['data-acid-theme-id'] !== 'acid-orange') {
+        problems.push('switching palettes did not update data-acid-theme-id')
+      }
+      if (globalThis.window.localStorage.getItem('dsh.acid-core.theme') !== 'acid-orange') {
+        problems.push('switching palettes did not remember the new id')
+      }
     }
     const darkTile = tiles.find((tile) => tile.title === 'dark')
     darkTile?.onClick()
     if (globalThis.document.body.attributes['data-acid-theme'] !== undefined) {
       problems.push('switching back to dark did not disarm the affordance layer')
     }
-    if (globalThis.window.localStorage.getItem('dsh.acid-core.theme') !== null) {
-      problems.push('switching back to dark did not forget the acid choice')
+    if (globalThis.document.body.attributes['data-acid-theme-id'] !== undefined) {
+      problems.push('switching back to dark did not clear the palette id')
     }
-    // And the remembered flag must bring it back on the next load. Model a real
+    if (globalThis.window.localStorage.getItem('dsh.acid-core.theme') !== null) {
+      problems.push('switching back to dark did not forget the palette choice')
+    }
+    // And the remembered id must bring it back on the next load. Model a real
     // reload: a fresh theme service (the host resets the preference and drops
     // every listener when the registration is disposed), same local storage.
-    themeRegistrations.length = 0
-    themeListeners.length = 0
-    preference = 'system'
-    globalThis.document.body.attributes = {}
-    globalThis.window.localStorage.setItem('dsh.acid-core.theme', 'on')
-    plugins.apply(ctx)
-    if (process.env.ACID_DEBUG === '1') console.log('DBG', globalThis.window.localStorage.getItem('dsh.acid-core.theme'), preference)
-    if (preference !== 'acid-mono') problems.push(`remembered acid choice was not re-applied: preference=${preference}`)
+    const reload = (stored) => {
+      themeRegistrations.length = 0
+      themeListeners.length = 0
+      preference = 'system'
+      globalThis.document.body.attributes = {}
+      globalThis.window.localStorage.setItem('dsh.acid-core.theme', stored)
+      plugins.apply(ctx)
+    }
+    reload('on') // legacy boolean flag migrates to the default palette
+    if (preference !== 'acid-mono') problems.push(`legacy flag was not migrated: preference=${preference}`)
+    reload('acid-orange')
+    if (preference !== 'acid-orange') problems.push(`remembered palette was not re-applied: preference=${preference}`)
     globalThis.window.localStorage.removeItem('dsh.acid-core.theme')
   }
 
@@ -482,6 +546,27 @@ if (chipComponent !== undefined) {
     if (node.props?.className === 'dsh-acid-chip') live = node.props['data-live']
   })
   if (live === undefined) problems.push('chip did not render its data-live state')
+}
+
+// ── status strip ────────────────────────────────────────────────────────────
+const statusComponent = registrations.find((entry) => entry.options?.name === 'shell.bottom')?.component
+if (statusComponent === undefined) {
+  problems.push('status strip component not registered in shell.bottom')
+} else {
+  const strip = render(statusComponent({}))
+  let stripNode = null
+  walk(strip, (node) => {
+    if (node.props?.className === 'dsh-acid-status') stripNode = node
+  })
+  if (stripNode === null) problems.push('status strip did not render')
+  else {
+    const text = JSON.stringify(strip).match(/FPS/g) ?? []
+    if (text.length === 0) problems.push('status strip has no FPS reading')
+  }
+  test.toggleFlag('statusbar')
+  if (render(statusComponent({})) !== null) problems.push('disabled status strip must render null')
+  test.toggleFlag('statusbar')
+  if (test.getParams().statusbar !== true) problems.push('status strip switch did not round-trip')
 }
 
 // ── report ──────────────────────────────────────────────────────────────────

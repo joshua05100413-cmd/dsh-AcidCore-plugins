@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "Composer dock meter: live character count and rough token estimate for the draft you are typing.",
+  "description": "Composer dock utility: character/token meter, session cost from DeepSeek's published prices, a per-session draft vault and an explicit draft cleaner.",
   "main": "./index.js",
   "exports": {
     ".": "./index.js",

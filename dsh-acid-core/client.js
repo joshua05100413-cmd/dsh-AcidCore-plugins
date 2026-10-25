@@ -1,7 +1,7 @@
 /**
  * dsh-acid-core — Acid Graphics layer for the DeepSeek Harness Web shell.
  *
- * Three modules, one bundle, one owner:
+ * Theme, crystal and local media, one bundle, one owner:
  *
  *   A. Backdrop  — a WebGL wireframe crystal behind the shell. One geometry
  *      built once; every visual change is a uniform write, so moving a slider
@@ -42,17 +42,23 @@ window.__ModuleLoader__.load({
     const STORAGE_KEY = 'dsh.acid-core.params'
     /** Remembers that the user chose the acid theme (it is not a host preference). */
     const THEME_FLAG = 'dsh.acid-core.theme'
+    const VERSION = '0.3.0'
 
     const DICTS = {
       zh: {
         'meta.title': 'Acid Core',
-        'meta.description': '酸性科技风：3D 线框晶体背景 + Acid-Mono 主题。主题与控制项都在设置里，不占用界面。',
+        'meta.description': '晶体开机动画、六套完整配色、本地壁纸与背景大字。选择背景，调整遮罩，让界面保持清晰。',
         nav: 'Acid Core',
         'sec.theme': '主题',
-        'sec.themeHint': '选中一个主题即全局生效；随时可以选回「深色」或「浅色」，不会留下半套配色。',
+        'sec.themeHint': '选中一个主题即全局生效；每套配色都是完整主题，不只覆盖强调色。随时可以选回「深色」或「浅色」。',
         'theme.light': '浅色',
         'theme.dark': '深色',
         'theme.acid': '酸性暗色',
+        'theme.orange': '霓虹橙',
+        'theme.cyan': '电弧青',
+        'theme.violet': '紫罗兰',
+        'theme.rose': '玫红',
+        'theme.orangeLight': '暖橙白',
         'theme.system': '跟随系统',
         'theme.current': '当前',
         'sec.crystal': '晶体背景',
@@ -61,22 +67,96 @@ window.__ModuleLoader__.load({
         'ctl.frequency': '形变频率',
         'ctl.speed': '噪波流速',
         'ctl.backdrop': '启用背景',
+        'ctl.statusbar': '状态带',
         'ctl.reset': '复位',
+        'status.fps': 'FPS',
+        'status.dpr': 'DPR',
+        'status.gl': 'WebGL',
+        'status.theme': '主题',
+        'status.hint': '运行期读数：帧率、像素比、渲染器与当前配色；在上方「晶体背景」卡片里可关闭。',
         'state.fps': 'FPS',
         'chip.active': 'ACID // 运行中',
         'chip.idle': 'ACID // 静默',
         'hint.accent': '强调色落在可交互控件上：发送键、图标、激活态、聚焦环；正文与代码区保持低刺激。',
         'hint.budget': '排版与长文本区域不使用荧光色，酸性只做"信号"。',
+        'sec.background': '背景',
+        'background.crystal': '晶体',
+        'background.image': '图片',
+        'background.none': '无',
+        'background.enable': '显示背景',
+        'background.imageHint': '将图片放入下方目录，再刷新列表。支持 JPG、PNG、WebP、AVIF、GIF、BMP，单张不超过 32 MB。',
+        'background.empty': '还没有图片。打开图片目录，放入图片后刷新列表。',
+        'background.unselected': '请选择一张图片；也可以切回晶体背景。',
+        'background.open': '打开图片目录',
+        'background.refresh': '刷新列表',
+        'background.loading': '正在读取图片列表…',
+        'background.error': '无法读取图片目录。请重启 DSH 后刷新列表。',
+        'background.openError': '未能打开目录，请按下方路径手动打开。',
+        'background.imageError': '图片读取失败。请刷新列表、重新选择图片，或切回晶体。',
+        'background.selected': '已选：{name}',
+        'background.fit': '图片适配',
+        'background.cover': '铺满',
+        'background.contain': '完整显示',
+        'background.veilDark': '深色遮罩',
+        'background.veilLight': '浅色遮罩',
+        'background.veilHint': '遮罩随主题切换；浓度越高，正文越清晰。卡片、输入框与代码块保留原有底色。',
+        'sec.banner': '背景大字',
+        'banner.enable': '显示大字',
+        'banner.text': '文字',
+        'banner.placeholder': '输入一句话',
+        'banner.opacity': '大字浓度',
+        'banner.hint': '最多 80 个字符，随主题变色、随窗口缩放；可与晶体、图片或纯色背景搭配。',
+        'diagnostics.title': '背景诊断',
+        'diagnostics.version': '插件版本',
+        'diagnostics.directory': '图片目录',
+        'diagnostics.source': '当前图片',
+        'diagnostics.none': '未选择',
+        'diagnostics.state': '图片状态',
+        'image.idle': '未启用',
+        'image.loading': '加载中',
+        'image.ready': '已显示',
+        'image.error': '加载失败',
+        'sec.intro': '开机动画',
+        'intro.enable': '启动时播放',
+        'intro.mode': '开场方式',
+        'intro.animation': '内置晶体动画',
+        'intro.video': '本地视频',
+        'intro.animationName': '晶体开机动画',
+        'intro.animationHint': '无需素材：线框晶体聚合、文字显现，约 3 秒后淡出进入工作区。每轮窗口会话播放一次，Esc 可跳过。',
+        'intro.select': '视频',
+        'intro.auto': '自动使用最新视频',
+        'intro.open': '打开视频目录',
+        'intro.refresh': '刷新视频列表',
+        'intro.replay': '重播开场',
+        'intro.skip': '跳过开场',
+        'intro.hint': '每轮窗口会话自动播放一次，静音全屏，播完淡出。支持 MP4 / M4V / WebM，单个不超过 2 GiB。更换视频后可点「重播开场」预览。',
+        'intro.motionHint': '系统启用「减少动态效果」时不自动播放，仍可手动重播。',
+        'intro.libraryError': '无法读取视频列表。请重启 DSH 后刷新；也可以先关闭启动播放。',
+        'intro.openError': '未能打开视频目录，请按下方路径手动打开。',
+        'intro.idle': '等待下次启动；可手动重播',
+        'intro.loading': '正在加载视频…',
+        'intro.waiting': '等待已有开场动画离场…',
+        'intro.playing': '正在播放：{name}',
+        'intro.fading': '正在淡出…',
+        'intro.finished': '开场已结束',
+        'intro.empty': '还没有视频。打开视频目录，放入素材后刷新列表。',
+        'intro.error': '视频无法播放。请检查文件和编码，刷新后重试；推荐 H.264 MP4 或 VP9 WebM。',
+        'intro.skipped': '开场已跳过',
       },
       en: {
         'meta.title': 'Acid Core',
-        'meta.description': 'Acid graphics: a wireframe crystal backdrop plus the Acid-Mono theme. Everything lives in Settings; nothing floats over the shell.',
+        'meta.description': 'A crystal startup animation, six complete palettes, local wallpapers and background lettering. Choose a background and adjust its veil for clear reading.',
         nav: 'Acid Core',
         'sec.theme': 'Theme',
-        'sec.themeHint': 'Picking a tile applies globally. Pick Dark or Light again at any time — no half-themed leftovers.',
+        'sec.themeHint': 'Picking a tile applies globally. Every palette is a complete theme, not just an accent swap; pick Dark or Light again any time.',
         'theme.light': 'Light',
         'theme.dark': 'Dark',
         'theme.acid': 'Acid Mono',
+        'theme.orange': 'Neon Orange',
+        'theme.cyan': 'Arc Cyan',
+        'theme.violet': 'Violet',
+        'theme.rose': 'Rose',
+        'theme.orangeLight': 'Amber Light',
         'theme.system': 'System',
         'theme.current': 'active',
         'sec.crystal': 'Crystal backdrop',
@@ -85,12 +165,81 @@ window.__ModuleLoader__.load({
         'ctl.frequency': 'frequency',
         'ctl.speed': 'time speed',
         'ctl.backdrop': 'backdrop',
+        'ctl.statusbar': 'status strip',
         'ctl.reset': 'reset',
+        'status.fps': 'FPS',
+        'status.dpr': 'DPR',
+        'status.gl': 'WebGL',
+        'status.theme': 'theme',
+        'status.hint': 'Runtime readings: frame rate, pixel ratio, renderer and active palette. Hide it in the crystal card above.',
         'state.fps': 'FPS',
         'chip.active': 'ACID // live',
         'chip.idle': 'ACID // idle',
         'hint.accent': 'Accent lands on interactive controls — send, icons, active state, focus rings; reading surfaces stay calm.',
         'hint.budget': 'No neon in type or long text: acid is a signal, not a surface.',
+        'sec.background': 'Background',
+        'background.crystal': 'Crystal',
+        'background.image': 'Image',
+        'background.none': 'None',
+        'background.enable': 'Show background',
+        'background.imageHint': 'Drop images into the folder below, then refresh. JPG, PNG, WebP, AVIF, GIF and BMP; up to 32 MB each.',
+        'background.empty': 'No images yet. Open the folder, add images, then refresh the list.',
+        'background.unselected': 'Choose an image or switch back to the crystal.',
+        'background.open': 'Open image folder',
+        'background.refresh': 'Refresh list',
+        'background.loading': 'Reading images…',
+        'background.error': 'Cannot read the image folder. Restart DSH, then refresh the list.',
+        'background.openError': 'Could not open the folder. Open the path below manually.',
+        'background.imageError': 'Could not load the image. Refresh and choose an image, or switch back to the crystal.',
+        'background.selected': 'Selected: {name}',
+        'background.fit': 'Image fit',
+        'background.cover': 'Fill',
+        'background.contain': 'Fit',
+        'background.veilDark': 'Dark veil',
+        'background.veilLight': 'Light veil',
+        'background.veilHint': 'The veil follows the theme. Increase it for clearer text; cards, the composer and code blocks keep their surfaces.',
+        'sec.banner': 'Background lettering',
+        'banner.enable': 'Show lettering',
+        'banner.text': 'Text',
+        'banner.placeholder': 'Write a short line',
+        'banner.opacity': 'Lettering opacity',
+        'banner.hint': 'Up to 80 characters. Follows the theme and window size; works with the crystal, an image or a plain background.',
+        'diagnostics.title': 'Background diagnostics',
+        'diagnostics.version': 'Plugin version',
+        'diagnostics.directory': 'Image folder',
+        'diagnostics.source': 'Current image',
+        'diagnostics.none': 'None selected',
+        'diagnostics.state': 'Image state',
+        'image.idle': 'Inactive',
+        'image.loading': 'Loading',
+        'image.ready': 'Displayed',
+        'image.error': 'Failed to load',
+        'sec.intro': 'Startup animation',
+        'intro.enable': 'Play on startup',
+        'intro.mode': 'Intro style',
+        'intro.animation': 'Built-in crystal animation',
+        'intro.video': 'Local video',
+        'intro.animationName': 'Crystal startup animation',
+        'intro.animationHint': 'No media needed: a wireframe crystal forms, the title appears, then the scene fades into the workspace after about 3 seconds. Once per window session; Esc skips.',
+        'intro.select': 'Video',
+        'intro.auto': 'Use the newest video',
+        'intro.open': 'Open video folder',
+        'intro.refresh': 'Refresh videos',
+        'intro.replay': 'Replay intro',
+        'intro.skip': 'Skip intro',
+        'intro.hint': 'Plays once per window session, muted and full-screen, then fades out. MP4 / M4V / WebM, up to 2 GiB each. Replay to preview a new selection.',
+        'intro.motionHint': 'Reduced motion disables automatic playback. Manual replay remains available.',
+        'intro.libraryError': 'Cannot read videos. Restart DSH and refresh, or disable startup playback.',
+        'intro.openError': 'Could not open the video folder. Open the path below manually.',
+        'intro.idle': 'Ready for the next startup or manual replay',
+        'intro.loading': 'Loading video…',
+        'intro.waiting': 'Waiting for the existing intro to leave…',
+        'intro.playing': 'Playing: {name}',
+        'intro.fading': 'Fading out…',
+        'intro.finished': 'Intro finished',
+        'intro.empty': 'No videos yet. Open the folder, add a video, then refresh.',
+        'intro.error': 'Cannot play this video. Check the file and codec, refresh, then retry. H.264 MP4 or VP9 WebM is recommended.',
+        'intro.skipped': 'Intro skipped',
       },
     }
 
@@ -305,11 +454,138 @@ window.__ModuleLoader__.load({
 
     const ACID_TOKENS = Object.freeze({ ...THEME_BASE, ...THEME_PATCH })
 
+    // ── palettes ───────────────────────────────────────────────────────────
+    //
+    // Every custom theme is a *complete* token set: the dark palettes share the
+    // same matte surfaces and only swap the accent family, while the light one
+    // starts from the host's own light alias tokens (resolved at runtime, so a
+    // host redesign carries over) and repaints the surfaces warm.
+    const THEME_SPECS = [
+      { id: 'acid-mono', scheme: 'dark', labelKey: 'theme.acid', accent: '#CCFF00', soft: '#D9FF57' },
+      { id: 'acid-orange', scheme: 'dark', labelKey: 'theme.orange', accent: '#FF8A00', soft: '#FFB04D' },
+      { id: 'acid-cyan', scheme: 'dark', labelKey: 'theme.cyan', accent: '#00E5FF', soft: '#7AF0FF' },
+      { id: 'acid-violet', scheme: 'dark', labelKey: 'theme.violet', accent: '#B47CFF', soft: '#CDA6FF' },
+      { id: 'acid-rose', scheme: 'dark', labelKey: 'theme.rose', accent: '#FF5C8A', soft: '#FF8AAE' },
+      { id: 'acid-orange-light', scheme: 'light', labelKey: 'theme.orangeLight', accent: '#C2410C', soft: '#EA580C' },
+    ]
+    /** Ids that belong to this bundle; anything else is a stock host theme. */
+    const CUSTOM_THEME_IDS = new Set(THEME_SPECS.map((spec) => spec.id))
+    /** The theme a first-time user lands on when they pick the bundle's default. */
+    const DEFAULT_THEME_ID = THEME_ID
+
+    /**
+     * Warm light surface ramp. Only the tokens that would otherwise keep a
+     * dark-blue or pure-white fill are listed: everything else rides the host's
+     * light alias tokens, so a host palette revision still applies.
+     */
+    const LIGHT_PATCH = {
+      '--dsw-alias-bg-base': '#FFFCF7',
+      '--dsw-alias-bg-document-preview': '#FFFCF7',
+      '--dsw-alias-bg-layer-1': '#FFF7EE',
+      '--dsw-alias-bg-layer-2': '#FFF7EE',
+      '--dsw-alias-bg-layer-3': '#FBEEDF',
+      '--dsw-alias-bg-module-platform': '#FFF7EE',
+      '--dsw-alias-bg-multi-select': '#F6E8D8',
+      '--dsw-alias-bg-overlay': '#F3E4D2',
+      '--dsw-alias-settings-card-fill': '#FFF7EE',
+      '--dsw-alias-settings-card-stroke': '#EAD9C6',
+      '--dsw-alias-border-l1': '#EFE3D5',
+      '--dsw-alias-border-l2': '#EFE3D5',
+      '--dsw-alias-border-l2-darkmode-thin': '#EFE3D5',
+      '--dsw-alias-border-l3': '#DFCBB5',
+      '--dsw-alias-border-l4': '#DFCBB5',
+      '--dsw-alias-label-primary': '#2B2119',
+      '--dsw-alias-label-primary-foreground': '#2B2119',
+      '--dsw-alias-label-primary-dimmed': '#5A4A3E',
+      '--dsw-alias-label-primary-inverted': '#FFFFFF',
+      '--dsw-alias-label-primary-bluish': '#4A3B31',
+      '--dsw-alias-label-secondary': '#6B584A',
+      '--dsw-alias-label-tertiary': '#6B584A',
+      '--dsw-alias-label-dimmed': '#8B786A',
+      '--dsw-alias-label-caption': '#8B786A',
+      '--dsw-alias-markdown-inline-code': '#F6E9DA',
+      '--dsw-alias-markdown-code-block': '#FBF3E9',
+      '--dsw-alias-markdown-code-block-banner': '#F5EBDE',
+      '--dsw-alias-markdown-placeholder': '#9A8574',
+      '--dsw-alias-interactive-bg-hover': '#0000000D',
+      '--dsw-alias-interactive-bg-hover-solid': '#F3E4D2',
+      '--dsw-alias-interactive-bg-active': '#00000014',
+      '--dsw-alias-scrollbar-hover-l1': '#DFCBB5',
+      '--dsw-alias-scrollbar-hover-l2': '#DFCBB5',
+      '--dsw-alias-menu-group-header-fill': '#FFF7EEF0',
+      '--dsw-alias-toast-bg': '#F3E4D2',
+      '--dsw-alias-toast-label': '#2B2119',
+      '--dsw-specific-bubble': '#FFF1E2',
+      '--dsw-specific-bubble-highlight': '#FFE7CF',
+      '--dsw-specific-input-major': '#FFFFFF',
+      '--dsw-specific-login-input': '#FFFFFF',
+      '--dsw-specific-menu': '#FFF7EE',
+      '--dsw-specific-selector': '#F6E8D8',
+      '--dsw-specific-sidebar-fill': '#FFFCF7',
+      '--dsw-specific-sidebar-nav-item-active': '#F6E8D8',
+      '--dsw-specific-sidebar-nav-item-active-accent': '#EAD9C6',
+      '--dsw-specific-sidebar-nav-item-hover': '#0000000A',
+      '--dsw-specific-tip': '#F3E4D2',
+      '--dsw-menu-surface-fill': '#FFF7EE',
+      '--dsw-linear-gradient-think': 'linear-gradient(180deg, #FBF1E5 20.19%, #FBF1E500 100%)',
+      '--dsw-linear-think-select': 'linear-gradient(180deg, #F6E8D8 20.19%, #F6E8D800 100%)',
+    }
+
+    /**
+     * The accent family a palette owns. These are the only tokens a palette
+     * changes: saturated accent never lands on a reading surface.
+     * @param spec - one entry of THEME_SPECS.
+     * @returns the alias tokens that carry the accent.
+     */
+    function accentPatch(spec) {
+      return {
+        '--dsw-alias-state-business-primary': spec.accent,
+        '--dsw-alias-state-business-tertiary': `${spec.accent}14`,
+        '--dsw-alias-brand-primary-new-colorprimary-new-color': spec.accent,
+        '--dsw-alias-button-info-fill': spec.accent,
+        '--dsw-alias-button-info-hover': spec.soft,
+        '--dsw-alias-link': spec.accent,
+        '--dsw-alias-label-deep-diving': spec.accent,
+        '--dsw-alias-label-deep-diving-shimmer': spec.soft,
+        '--dsw-alias-bg-document-selection': `color-mix(in srgb, ${spec.accent} 38%, transparent)`,
+        '--dsw-alias-interactive-bg-hover-accent': `${spec.accent}1A`,
+      }
+    }
+
+    /**
+     * Build one complete theme.
+     * @param spec - one entry of THEME_SPECS.
+     * @param stockLightTokens - the host's light alias tokens, for the light spec.
+     * @returns the token map to register.
+     */
+    function buildThemeTokens(spec, stockLightTokens) {
+      const base = spec.scheme === 'light' ? { ...stockLightTokens, ...LIGHT_PATCH } : { ...THEME_BASE, ...THEME_PATCH }
+      return { ...base, ...accentPatch(spec) }
+    }
+
     // ── shared parameter store ─────────────────────────────────────────────
     const PARAM_SPEC = {
       distortion: { min: 0, max: 1.5, step: 0.01, value: 0.45 },
       frequency: { min: 0.2, max: 5, step: 0.01, value: 1.8 },
       speed: { min: 0.1, max: 3, step: 0.01, value: 1 },
+    }
+    const MEDIA_SPEC = {
+      veilDark: { min: 0.55, max: 0.98, step: 0.01, value: 0.84 },
+      veilLight: { min: 0.55, max: 0.98, step: 0.01, value: 0.90 },
+      bannerOpacity: { min: 0.02, max: 0.20, step: 0.01, value: 0.08 },
+    }
+    const MEDIA_DEFAULTS = { background: 'crystal', image: '', imageFit: 'cover', banner: '', bannerEnabled: false, introEnabled: true, introMode: 'animation', introVideo: '' }
+
+    function normalizeParam(key, value) {
+      const spec = PARAM_SPEC[key] ?? MEDIA_SPEC[key]
+      if (spec) return typeof value === 'number' && Number.isFinite(value) ? clamp(value, spec.min, spec.max) : undefined
+      if (['backdrop', 'statusbar', 'bannerEnabled', 'introEnabled'].includes(key)) return typeof value === 'boolean' ? value : undefined
+      if (key === 'background') return ['crystal', 'image', 'none'].includes(value) ? value : undefined
+      if (key === 'imageFit') return ['cover', 'contain'].includes(value) ? value : undefined
+      if (key === 'introMode') return ['animation', 'video'].includes(value) ? value : undefined
+      if (key === 'banner') return typeof value === 'string' ? Array.from(value.replace(/[\r\n\t]/g, ' ')).slice(0, 80).join('') : undefined
+      if (key === 'image' || key === 'introVideo') return typeof value === 'string' && !/[\\/\x00-\x1f]/.test(value) && value.length <= 255 ? value : undefined
+      return undefined
     }
 
     function clamp(value, min, max) {
@@ -330,10 +606,13 @@ window.__ModuleLoader__.load({
     const stored = readStored()
     let params = {
       backdrop: typeof stored.backdrop === 'boolean' ? stored.backdrop : true,
-      ...Object.fromEntries(Object.entries(PARAM_SPEC).map(([key, spec]) => [key, spec.value])),
+      statusbar: typeof stored.statusbar === 'boolean' ? stored.statusbar : true,
+      ...MEDIA_DEFAULTS,
+      ...Object.fromEntries(Object.entries({ ...PARAM_SPEC, ...MEDIA_SPEC }).map(([key, spec]) => [key, spec.value])),
     }
-    for (const [key, spec] of Object.entries(PARAM_SPEC)) {
-      if (typeof stored[key] === 'number' && Number.isFinite(stored[key])) params[key] = clamp(stored[key], spec.min, spec.max)
+    for (const key of Object.keys(params)) {
+      const value = normalizeParam(key, stored[key])
+      if (value !== undefined) params[key] = value
     }
     const reduceMotion = typeof window.matchMedia === 'function'
       && window.matchMedia('(prefers-reduced-motion: reduce)').matches
@@ -362,17 +641,15 @@ window.__ModuleLoader__.load({
 
     function persist() {
       try {
-        const out = { backdrop: params.backdrop }
-        for (const key of Object.keys(PARAM_SPEC)) out[key] = params[key]
-        window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(out))
+        window.localStorage?.setItem(STORAGE_KEY, JSON.stringify(params))
       } catch {
         /* storage disabled: parameters live for this page only */
       }
     }
 
     function setParam(key, value) {
-      const spec = PARAM_SPEC[key]
-      const next = spec === undefined ? value : clamp(value, spec.min, spec.max)
+      const next = normalizeParam(key, value)
+      if (next === undefined) return
       if (params[key] === next) return
       params = { ...params, [key]: next }
       persist()
@@ -380,13 +657,11 @@ window.__ModuleLoader__.load({
     }
 
     function toggleFlag(key) {
-      params = { ...params, [key]: !params[key] }
-      persist()
-      emit()
+      if (typeof params[key] === 'boolean') setParam(key, !params[key])
     }
 
     function resetParams() {
-      const next = { backdrop: true }
+      const next = { ...params, backdrop: true, statusbar: true }
       for (const [key, spec] of Object.entries(PARAM_SPEC)) next[key] = spec.value
       params = next
       persist()
@@ -434,9 +709,9 @@ window.__ModuleLoader__.load({
       try {
         // A registered theme id is not part of the host settings schema, so the
         // choice does not survive a restart on its own; remember it here and
-        // re-apply on load. Any other id clears the memory.
+        // re-apply on load. Any stock id clears the memory.
         try {
-          if (id === THEME_ID) window.localStorage?.setItem(THEME_FLAG, 'on')
+          if (CUSTOM_THEME_IDS.has(id)) window.localStorage?.setItem(THEME_FLAG, id)
           else window.localStorage?.removeItem(THEME_FLAG)
         } catch {
           /* storage disabled */
@@ -447,12 +722,14 @@ window.__ModuleLoader__.load({
       }
     }
 
-    /** Has the user asked for the acid theme and not switched away since? */
-    function acidRemembered() {
+    /** The remembered palette id, or null. Migrates the old boolean flag. */
+    function rememberedTheme() {
       try {
-        return window.localStorage?.getItem(THEME_FLAG) === 'on'
+        const raw = window.localStorage?.getItem(THEME_FLAG)
+        if (raw === 'on') return DEFAULT_THEME_ID
+        return typeof raw === 'string' && CUSTOM_THEME_IDS.has(raw) ? raw : null
       } catch {
-        return false
+        return null
       }
     }
 
@@ -463,6 +740,463 @@ window.__ModuleLoader__.load({
         /* storage disabled */
       }
     }
+
+    // Local library and diagnostics are separate from animation frame updates.
+    let library = { images: [], directory: '', loading: false, opening: false, error: false, openError: false, version: '' }
+    let scene = { imageState: 'idle' }
+    const libraryListeners = new Set()
+    const sceneListeners = new Set()
+    const subscribeLibrary = (listener) => { libraryListeners.add(listener); return () => libraryListeners.delete(listener) }
+    const subscribeScene = (listener) => { sceneListeners.add(listener); return () => sceneListeners.delete(listener) }
+    const getLibrary = () => library
+    const getScene = () => scene
+    let libraryRequest = 0
+    let libraryAbort
+    let imageAttempt = 0
+
+    function publishLibrary(patch) {
+      library = { ...library, ...patch }
+      for (const listener of libraryListeners) listener()
+    }
+
+    function reportImage(imageState) {
+      if (scene.imageState === imageState) return
+      scene = { imageState }
+      for (const listener of sceneListeners) listener()
+    }
+
+    async function refreshLibrary() {
+      const request = ++libraryRequest
+      libraryAbort?.abort()
+      libraryAbort = new AbortController()
+      publishLibrary({ loading: true, error: false })
+      try {
+        const response = await fetch('/acid-core/wallpapers', { cache: 'no-store', signal: libraryAbort.signal })
+        if (!response.ok) throw new Error('library unavailable')
+        const data = await response.json()
+        if (!Array.isArray(data.images) || typeof data.directory !== 'string') throw new Error('invalid library')
+        if (request !== libraryRequest) return
+        imageAttempt += 1
+        publishLibrary({ images: data.images.filter((entry) => entry && typeof entry.name === 'string' && normalizeParam('image', entry.name) === entry.name),
+          directory: data.directory, version: typeof data.version === 'string' ? data.version : '', loading: false, error: false })
+      } catch (error) {
+        if (request === libraryRequest && error.name !== 'AbortError') publishLibrary({ loading: false, error: true })
+      }
+    }
+
+    async function openWallpaperDirectory() {
+      if (library.opening) return
+      publishLibrary({ opening: true, openError: false })
+      try {
+        const response = await fetch('/acid-core/open-wallpapers', { method: 'POST' })
+        if (!response.ok || !(await response.json()).ok) throw new Error('open failed')
+        publishLibrary({ opening: false })
+        await refreshLibrary()
+      } catch { publishLibrary({ opening: false, openError: true }) }
+    }
+
+    function imageUrl(name) {
+      const entry = library.images.find((image) => image.name === name)
+      return `/acid-core/wallpaper?name=${encodeURIComponent(name)}${entry ? `&v=${entry.modified}-${entry.size}` : ''}`
+    }
+
+    function chooseImage(name) {
+      const image = normalizeParam('image', name)
+      if (image === undefined || image === '') return
+      imageAttempt += 1
+      params = { ...params, image, background: 'image', backdrop: true }
+      persist()
+      emit()
+    }
+
+    /**
+     * A real background under the app, outside shell.overlay's z-index:20.
+     * Inspired by dsh-chat-wallpaper's separate image/veil/lettering layers.
+     * Only our scoped stylesheet overrides bg-base, including the presenter's
+     * inline token. Removing our attribute restores the latest theme value;
+     * never save and later restore a stale inline token from an earlier theme.
+     */
+    function createMediaLayer() {
+      const root = document.createElement('div')
+      root.id = 'dsh-acid-media'
+      root.setAttribute('aria-hidden', 'true')
+      root.setAttribute('data-plugin', PKG)
+      root.hidden = true
+      const veil = document.createElement('div')
+      veil.className = 'dsh-acid-veil'
+      const banner = document.createElement('span')
+      banner.className = 'dsh-acid-banner'
+      root.appendChild(veil)
+      root.appendChild(banner)
+      document.body.insertBefore(root, document.body.firstChild)
+      let disposed = false
+      let image = null
+      let source = ''
+      let loaded = false
+      let lastParams, lastTheme, lastImages
+      let initialGround
+      try { initialGround = getComputedStyle(document.body).getPropertyValue('--dsw-alias-bg-base').trim() } catch { /* theme not live */ }
+
+      const fitBanner = () => {
+        if (!banner.textContent || root.hidden) return
+        banner.style.fontSize = '100px'
+        const measured = banner.getBoundingClientRect().width
+        if (measured > 0) banner.style.fontSize = `${Math.max(12, Math.min(100 * (window.innerWidth * 0.92) / measured, window.innerHeight * 0.32))}px`
+      }
+      const clearImage = () => {
+        if (!image) return
+        image.onload = image.onerror = null
+        image.removeAttribute('src')
+        image.remove()
+        image = null
+      }
+      const refresh = (force = false) => {
+        if (disposed) return
+        const p = getParams(), theme = getThemeSnapshot(), images = library.images
+        if (!force && p === lastParams && theme === lastTheme && images === lastImages) return
+        lastParams = p; lastTheme = theme; lastImages = images
+        const dark = theme.active?.colorScheme ? theme.active.colorScheme !== 'light'
+          : !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches)
+        const ground = theme.active?.tokens?.['--dsw-alias-bg-base'] || initialGround || (dark ? '#08090C' : '#FFFCF7')
+        root.style.setProperty('--acid-media-ground', ground === 'transparent' ? (dark ? '#08090C' : '#FFFCF7') : ground)
+        root.style.setProperty('--acid-media-veil', String(dark ? p.veilDark : p.veilLight))
+        root.style.setProperty('--acid-media-ink', dark ? '#F1F5F9' : '#2B2119')
+        root.style.setProperty('--acid-banner-color', themeAccentHex(theme) || (dark ? '#F1F5F9' : '#2B2119'))
+        root.style.setProperty('--acid-banner-opacity', String(p.bannerOpacity))
+        const wanted = p.backdrop && p.background === 'image' && p.image ? `${imageUrl(p.image)}&attempt=${imageAttempt}` : ''
+        if (wanted !== source) {
+          source = wanted; loaded = false; clearImage()
+          reportImage(wanted ? 'loading' : 'idle')
+          if (wanted) {
+            const candidate = document.createElement('img')
+            image = candidate
+            candidate.alt = ''
+            candidate.decoding = 'async'
+            candidate.onload = () => {
+              if (disposed || image !== candidate) return
+              loaded = true
+              root.insertBefore(candidate, veil)
+              reportImage('ready')
+              refresh(true)
+            }
+            candidate.onerror = () => {
+              if (disposed || image !== candidate) return
+              loaded = false
+              reportImage('error')
+              refresh(true)
+            }
+            candidate.src = wanted
+          }
+        }
+        if (image) image.style.objectFit = p.imageFit
+        veil.hidden = !loaded
+        banner.textContent = p.backdrop && p.bannerEnabled ? p.banner.trim() : ''
+        banner.hidden = !banner.textContent
+        root.hidden = !loaded && !banner.textContent
+        if (root.hidden) document.body.removeAttribute('data-acid-media')
+        else document.body.setAttribute('data-acid-media', 'on')
+        fitBanner()
+      }
+      const offParams = subscribe(refresh)
+      const offTheme = subscribeTheme(refresh)
+      const offLibrary = subscribeLibrary(refresh)
+      window.addEventListener('resize', fitBanner)
+      refresh()
+      return () => {
+        if (disposed) return
+        disposed = true
+        offParams(); offTheme(); offLibrary()
+        window.removeEventListener('resize', fitBanner)
+        clearImage()
+        root.remove()
+        document.body.removeAttribute('data-acid-media')
+        reportImage('idle')
+      }
+    }
+
+    // Intro playback is independent of the permanent background and its switch.
+    const INTRO_SEEN = 'dsh.acid-core.intro.shown'
+    let intro = { videos: [], directory: '', loading: false, opening: false, libraryError: false, openError: false, phase: 'idle', name: '' }
+    const introListeners = new Set()
+    const subscribeIntro = (listener) => { introListeners.add(listener); return () => introListeners.delete(listener) }
+    const getIntro = () => intro
+    function publishIntro(patch) {
+      intro = { ...intro, ...patch }
+      for (const listener of introListeners) listener()
+    }
+    let videoRequest = 0, videoAbort, videoPromise, introPlayer, introShownHere = false
+
+    function refreshVideos(force = false) {
+      if (videoPromise && !force) return videoPromise
+      const request = ++videoRequest
+      videoAbort?.abort()
+      videoAbort = new AbortController()
+      publishIntro({ loading: true, libraryError: false })
+      videoPromise = (async () => {
+        try {
+          const response = await fetch('/acid-core/videos', { cache: 'no-store', signal: videoAbort.signal })
+          if (!response.ok) throw new Error('video library unavailable')
+          const data = await response.json()
+          if (!Array.isArray(data.videos) || typeof data.directory !== 'string') throw new Error('invalid video library')
+          if (request !== videoRequest) return false
+          const videos = data.videos.filter((entry) => entry && normalizeParam('introVideo', entry.name) === entry.name && /\.(mp4|m4v|webm)$/i.test(entry.name))
+          publishIntro({ videos, directory: data.directory, loading: false, libraryError: false })
+          return true
+        } catch (error) {
+          if (request === videoRequest && error.name !== 'AbortError') publishIntro({ loading: false, libraryError: true })
+          return false
+        } finally { if (request === videoRequest) videoPromise = undefined }
+      })()
+      return videoPromise
+    }
+
+    async function openVideoDirectory() {
+      if (intro.opening) return
+      publishIntro({ opening: true, openError: false })
+      try {
+        const response = await fetch('/acid-core/open-videos', { method: 'POST' })
+        if (!response.ok || !(await response.json()).ok) throw new Error('open failed')
+        publishIntro({ opening: false })
+        await refreshVideos(true)
+      } catch { publishIntro({ opening: false, openError: true }) }
+    }
+
+    function introAlreadyShown() {
+      try { return introShownHere || window.sessionStorage?.getItem(INTRO_SEEN) === '1' } catch { return introShownHere }
+    }
+
+    function bootIntroBusy() {
+      // Optional compatibility with dsh-startup-screen; dimensions are not a
+      // completion signal. The default DSH shell needs no external boot gate.
+      const overlay = document.querySelector('#dsh-startup-root')
+      return overlay !== null && !/\bdsu-(handoff|gone)\b/.test(overlay.className || '')
+    }
+
+    function createIntroPlayer() {
+      introPlayer?.dispose()
+      let disposed = false, generation = 0, current = null
+      let lastEnabled = params.introEnabled, lastVideo = params.introVideo, lastMode = params.introMode
+
+      const release = (phase = 'finished') => {
+        const run = current
+        current = null
+        if (run) {
+          cancelAnimationFrame(run.raf)
+          if (run.video) {
+            run.video.removeEventListener('playing', run.onPlaying)
+            run.video.removeEventListener('ended', run.onEnded)
+            run.video.removeEventListener('error', run.onError)
+            try { run.video.pause(); run.video.removeAttribute('src'); run.video.load() } catch { /* already detached */ }
+          }
+          run.root.removeEventListener('transitionend', run.onTransition)
+          run.skip.removeEventListener('click', run.onSkip)
+          document.removeEventListener('keydown', run.onKey, true)
+          run.root.remove()
+        }
+        publishIntro({ phase })
+      }
+      const finish = () => {
+        if (!current || current.fading) return
+        if (!current.mounted || reduceMotion) { release(); return }
+        current.fading = true
+        current.fadeEnd = performance.now() + 650
+        current.root.setAttribute('data-phase', 'fading')
+        publishIntro({ phase: 'fading' })
+      }
+      const rememberShown = () => {
+        introShownHere = true
+        try { window.sessionStorage?.setItem(INTRO_SEEN, '1') } catch { /* private storage */ }
+      }
+      const animate = (ticket) => {
+        const root = document.createElement('div')
+        root.id = 'dsh-acid-intro'
+        root.setAttribute('data-plugin', PKG)
+        const scene = document.createElement('div')
+        scene.className = 'dsh-acid-intro-scene'
+        const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg')
+        svg.setAttribute('viewBox', '-150 -150 300 300')
+        svg.setAttribute('aria-hidden', 'true')
+        svg.classList.add('dsh-acid-intro-crystal')
+        const wire = document.createElementNS('http://www.w3.org/2000/svg', 'path')
+        wire.setAttribute('fill', 'none'); wire.setAttribute('stroke', 'currentColor'); wire.setAttribute('stroke-width', '1.15')
+        svg.appendChild(wire)
+        const title = document.createElement('div')
+        title.className = 'dsh-acid-intro-title'; title.textContent = 'DeepSeek Harness'
+        const line = document.createElement('div')
+        line.className = 'dsh-acid-intro-line'; line.setAttribute('aria-hidden', 'true')
+        const progress = document.createElement('span')
+        line.appendChild(progress)
+        const skip = document.createElement('button')
+        skip.type = 'button'; skip.textContent = fallbackT('intro.skip'); skip.className = 'dsh-acid-intro-skip'
+        scene.appendChild(svg); scene.appendChild(title); scene.appendChild(line)
+        root.appendChild(scene); root.appendChild(skip)
+        const geometry = buildCrystal(1, 1)
+        const points = new Float32Array(geometry.positions.length)
+        const run = { root, skip, video: null, mounted: false, fading: false, raf: 0, started: performance.now(), playStart: 0 }
+        current = run
+        const live = () => !disposed && current === run && ticket === generation
+        run.onSkip = () => { if (live()) finish() }
+        run.onKey = (event) => {
+          if (live() && run.mounted && event.key === 'Escape') { event.preventDefault(); event.stopPropagation(); finish() }
+        }
+        run.onTransition = (event) => { if (live() && run.fading && event.target === root && event.propertyName === 'opacity') release() }
+        root.addEventListener('transitionend', run.onTransition)
+        skip.addEventListener('click', run.onSkip)
+        document.addEventListener('keydown', run.onKey, true)
+        const paint = (elapsed) => {
+          const seconds = elapsed / 1000
+          const reveal = reduceMotion ? 1 : 1 - Math.pow(1 - Math.min(1, elapsed / 1100), 3)
+          const scale = 0.35 + 0.65 * reveal
+          const angle = reduceMotion ? 0.6 : seconds * 0.65 + 0.3
+          const cos = Math.cos(angle), sin = Math.sin(angle), tilt = -0.35
+          for (let i = 0; i < geometry.positions.length; i += 3) {
+            const x = geometry.positions[i], y = geometry.positions[i + 1], z = geometry.positions[i + 2]
+            const rx = x * cos + z * sin, rz = z * cos - x * sin
+            const ry = y * Math.cos(tilt) - rz * Math.sin(tilt), depth = y * Math.sin(tilt) + rz * Math.cos(tilt)
+            const perspective = 4 / (4 - depth)
+            points[i] = rx * 92 * scale * perspective
+            points[i + 1] = ry * 92 * scale * perspective
+          }
+          let path = ''
+          for (let i = 0; i < geometry.lines.length; i += 2) {
+            const a = geometry.lines[i] * 3, b = geometry.lines[i + 1] * 3
+            path += `M${points[a].toFixed(2)},${points[a + 1].toFixed(2)}L${points[b].toFixed(2)},${points[b + 1].toFixed(2)}`
+          }
+          wire.setAttribute('d', path)
+          wire.setAttribute('stroke-dasharray', '260')
+          wire.setAttribute('stroke-dashoffset', String((1 - reveal) * 260))
+          svg.style.opacity = String(reveal)
+          const titleReveal = reduceMotion ? 1 : Math.min(1, Math.max(0, (elapsed - 500) / 750))
+          title.style.opacity = String(titleReveal)
+          title.style.transform = `translateY(${(1 - titleReveal) * 12}px)`
+          progress.style.transform = `scaleX(${reduceMotion ? 1 : Math.min(1, elapsed / 2700)})`
+          const snapshot = getThemeSnapshot()
+          const dark = snapshot.active?.colorScheme !== 'light'
+          let ground = snapshot.active?.tokens?.['--dsw-alias-bg-base']
+          if (!ground || ground === 'transparent') {
+            try { ground = getComputedStyle(document.body).getPropertyValue('--dsw-alias-bg-layer-2').trim() } catch { /* theme not ready */ }
+          }
+          root.style.setProperty('--acid-intro-ground', ground || (dark ? '#08090C' : '#FFFCF7'))
+          root.style.setProperty('--acid-intro-ink', dark ? '#F1F5F9' : '#2B2119')
+          root.style.setProperty('--acid-intro-accent', themeAccentHex(snapshot) || (dark ? '#CCFF00' : '#C2410C'))
+        }
+        const watch = (now) => {
+          if (!live()) return
+          if (document.hidden) { release('skipped'); return }
+          if (!run.mounted) {
+            if (bootIntroBusy()) {
+              if (now - run.started >= 10000) { release('skipped'); return }
+              run.raf = requestAnimationFrame(watch); return
+            }
+            run.playStart = now
+            paint(0)
+            document.body.appendChild(root); run.mounted = true
+            rememberShown()
+            publishIntro({ phase: 'playing', name: fallbackT('intro.animationName') })
+          }
+          if (run.fading) {
+            if (now >= run.fadeEnd) { release(); return }
+          } else {
+            const elapsed = now - run.playStart
+            paint(elapsed)
+            if (elapsed >= (reduceMotion ? 700 : 2700)) finish()
+          }
+          if (live()) run.raf = requestAnimationFrame(watch)
+        }
+        publishIntro({ phase: bootIntroBusy() ? 'waiting' : 'loading' })
+        run.raf = requestAnimationFrame(watch)
+      }
+      const play = async (manual = false) => {
+        const ticket = ++generation
+        release('idle')
+        if (disposed || (!manual && (!params.introEnabled || reduceMotion || introAlreadyShown()))) return
+        if (params.introMode === 'animation') { animate(ticket); return }
+        publishIntro({ phase: 'loading' })
+        const available = await refreshVideos()
+        if (disposed || ticket !== generation) return
+        if (!manual && !params.introEnabled) { release('idle'); return }
+        if (!available) { release('error'); return }
+        const selected = params.introVideo ? intro.videos.find((entry) => entry.name === params.introVideo) : intro.videos[0]
+        if (!selected) { release(params.introVideo ? 'error' : 'empty'); return }
+        const root = document.createElement('div')
+        root.id = 'dsh-acid-intro'
+        root.setAttribute('data-plugin', PKG)
+        const video = document.createElement('video')
+        video.muted = true; video.defaultMuted = true; video.playsInline = true
+        video.preload = 'auto'; video.loop = false
+        video.setAttribute('aria-hidden', 'true')
+        const skip = document.createElement('button')
+        skip.type = 'button'; skip.textContent = fallbackT('intro.skip'); skip.className = 'dsh-acid-intro-skip'
+        root.appendChild(video); root.appendChild(skip)
+        const run = { root, video, skip, raf: 0, mounted: false, begun: false, fading: false,
+          started: performance.now(), lastProgress: performance.now(), lastTime: 0 }
+        current = run
+        const live = () => !disposed && current === run && generation === ticket
+        run.onPlaying = () => {
+          if (!live() || run.fading) return
+          if (!run.mounted) { document.body.appendChild(root); run.mounted = true }
+          rememberShown()
+          run.lastProgress = performance.now()
+          publishIntro({ phase: 'playing', name: selected.name })
+        }
+        run.onEnded = () => { if (live()) finish() }
+        run.onError = () => { if (live()) release('error') }
+        run.onSkip = () => { if (live()) finish() }
+        run.onKey = (event) => {
+          if (event.key === 'Escape' && run.mounted && live()) { event.preventDefault(); event.stopPropagation(); finish() }
+        }
+        run.onTransition = (event) => { if (live() && run.fading && event.target === root && event.propertyName === 'opacity') release() }
+        video.addEventListener('playing', run.onPlaying)
+        video.addEventListener('ended', run.onEnded)
+        video.addEventListener('error', run.onError)
+        root.addEventListener('transitionend', run.onTransition)
+        skip.addEventListener('click', run.onSkip)
+        document.addEventListener('keydown', run.onKey, true)
+        video.src = `/acid-core/video?name=${encodeURIComponent(selected.name)}&v=${selected.modified}-${selected.size}`
+        try { video.load() } catch { release('error'); return }
+        publishIntro({ phase: bootIntroBusy() ? 'waiting' : 'loading', name: selected.name })
+        const watch = (now) => {
+          if (!live()) return
+          if (document.hidden) { release('skipped'); return }
+          if (run.fading) {
+            if (now >= run.fadeEnd) { release(); return }
+          } else if (!run.begun) {
+            if (bootIntroBusy()) {
+              if (now - run.started >= 10000) { release('skipped'); return }
+            } else {
+              run.begun = true; run.lastProgress = now
+              try { Promise.resolve(video.play()).catch(() => { if (live()) release('error') }) }
+              catch { release('error'); return }
+            }
+          } else {
+            if (video.currentTime > run.lastTime) { run.lastTime = video.currentTime; run.lastProgress = now }
+            if (video.ended) { finish(); if (!live()) return }
+            else if (now - run.lastProgress >= 12000) { release('error'); return }
+          }
+          if (live()) run.raf = requestAnimationFrame(watch)
+        }
+        run.raf = requestAnimationFrame(watch)
+      }
+      const onVisibility = () => { if (document.hidden && current) release('skipped') }
+      document.addEventListener('visibilitychange', onVisibility)
+      const offParams = subscribe(() => {
+        if (lastEnabled === params.introEnabled && lastVideo === params.introVideo && lastMode === params.introMode) return
+        lastEnabled = params.introEnabled; lastVideo = params.introVideo; lastMode = params.introMode
+        generation += 1; release('idle')
+      })
+      const controller = { play, dispose() {
+        if (disposed) return
+        disposed = true; generation += 1
+        offParams(); document.removeEventListener('visibilitychange', onVisibility)
+        release('idle')
+        if (introPlayer === controller) introPlayer = undefined
+      } }
+      introPlayer = controller
+      void play()
+      return () => controller.dispose()
+    }
+
+    function replayIntro() { return introPlayer?.play(true) }
 
     // ── geometry: one icosahedron, subdivided once, reused forever ─────────
     //
@@ -678,10 +1412,15 @@ void main() {
      * a profile without WebGL simply gets no crystal, never a blank screen or
      * a thrown slot entry.
      */
-    function createBackdrop(canvas, crystal) {
+    function createBackdrop(canvas, crystal, accentHex) {
       const options = { alpha: true, antialias: false, depth: false, premultipliedAlpha: false, powerPreference: 'low-power' }
       const gl = canvas.getContext('webgl2', options) || canvas.getContext('webgl', options)
       if (gl === null || gl === undefined) return undefined
+      if (gl.isContextLost?.() === true) {
+        canvas.hidden = true
+        return undefined
+      }
+      canvas.hidden = false
 
       const compile = (type, source) => {
         const shader = gl.createShader(type)
@@ -748,7 +1487,7 @@ void main() {
       gl.blendFunc(gl.SRC_ALPHA, gl.ONE)
       gl.clearColor(0, 0, 0, 0)
 
-      const COLOR_LIME = hexToRgb('#CCFF00')
+      let COLOR_LIME = hexToRgb(typeof accentHex === 'string' && /^#[0-9a-f]{6}$/i.test(accentHex) ? accentHex : '#CCFF00')
       const COLOR_CYAN = hexToRgb('#00F0FF')
 
       const mouse = [0, 0]
@@ -762,6 +1501,7 @@ void main() {
       let last = 0
       let acc = 0
       let active = true
+      let contextLost = false
       let quiet = false
       let opacity = 0.92
       let probeTick = 0
@@ -780,6 +1520,7 @@ void main() {
       }
 
       const draw = (opacityValue = 0.92) => {
+        if (contextLost) return
         const p = params
         gl.useProgram(program)
         gl.clear(gl.COLOR_BUFFER_BIT)
@@ -796,6 +1537,7 @@ void main() {
       }
 
       const frame = (now) => {
+        if (!active || contextLost || document.hidden) { raf = 0; return }
         raf = requestAnimationFrame(frame)
         const raw = last === 0 ? 1 / 60 : (now - last) / 1000
         last = now
@@ -845,20 +1587,30 @@ void main() {
         scrollTarget = max > 0 ? clamp((top / max) * 2 - 1, -1, 1) : 0
       }
 
-      const onResize = () => resize()
+      const onResize = () => { resize(); if (reduceMotion) draw() }
       const onVisibility = () => {
         if (document.hidden) {
-          active = false
           cancelAnimationFrame(raf)
           raf = 0
-        } else if (active && raf === 0) {
+        } else if (active && !contextLost && !reduceMotion && raf === 0) {
           resize()
           last = 0
           raf = requestAnimationFrame(frame)
         }
       }
 
+      const onContextLost = (event) => {
+        event.preventDefault?.()
+        contextLost = true
+        canvas.hidden = true
+        cancelAnimationFrame(raf)
+        raf = 0
+        fps = 0
+        emit()
+      }
+
       resize()
+      canvas.addEventListener?.('webglcontextlost', onContextLost)
       window.addEventListener('pointermove', onPointerMove, { passive: true })
       window.addEventListener('scroll', onScroll, { passive: true, capture: true })
       window.addEventListener('resize', onResize)
@@ -868,11 +1620,15 @@ void main() {
         clock = 1.4
         draw()
         fps = 0
-      } else {
+      } else if (!document.hidden) {
         raf = requestAnimationFrame(frame)
       }
 
       return {
+        setAccent(value) {
+          COLOR_LIME = hexToRgb(typeof value === 'string' && /^#[0-9a-f]{6}$/i.test(value) ? value : '#CCFF00')
+          if (reduceMotion && active && !contextLost) draw(opacity)
+        },
         dispose() {
           active = false
           if (raf !== 0) cancelAnimationFrame(raf)
@@ -881,21 +1637,67 @@ void main() {
           window.removeEventListener('scroll', onScroll, true)
           window.removeEventListener('resize', onResize)
           document.removeEventListener('visibilitychange', onVisibility)
+          canvas.removeEventListener?.('webglcontextlost', onContextLost)
           gl.deleteBuffer(positionBuffer)
           gl.deleteBuffer(lineBuffer)
           gl.deleteProgram(program)
-          gl.getExtension('WEBGL_lose_context')?.loseContext()
+          // React can reuse this canvas after an effect cleanup. Explicitly
+          // losing its context permanently poisons that canvas; Chromium may
+          // then composite it as an opaque white full-screen surface.
+          fps = 0
+          emit()
         },
       }
     }
 
     // ── components ─────────────────────────────────────────────────────────
 
+    /**
+     * Normalise a CSS colour to `#rrggbb`. The theme snapshot hands back the
+     * literal token value, but the fallback path reads a computed custom
+     * property, which browsers serialise as `rgb(...)`.
+     * @param value - a hex or rgb()/rgba() string.
+     * @returns `#rrggbb`, or undefined when the value is not a plain colour.
+     */
+    function colorToHex(value) {
+      if (typeof value !== 'string') return undefined
+      const raw = value.trim()
+      if (/^#[0-9a-f]{6}$/i.test(raw)) return raw
+      const match = raw.match(/^rgba?\(\s*(\d{1,3})\s*,\s*(\d{1,3})\s*,\s*(\d{1,3})\b/i)
+      if (match === null) return undefined
+      const part = (n) => Math.max(0, Math.min(255, Number(n))).toString(16).padStart(2, '0')
+      return `#${part(match[1])}${part(match[2])}${part(match[3])}`
+    }
+
+    /**
+     * Which accent colour the backdrop should draw with, read from the active
+     * theme's tokens (or the live custom property) so the crystal follows the
+     * palette instead of staying lime on an orange shell.
+     * @param snapshot - the theme snapshot.
+     * @returns a `#rrggbb` value, or undefined to keep the default.
+     */
+    function themeAccentHex(snapshot) {
+      const fromTokens = colorToHex(snapshot?.active?.tokens?.['--dsw-alias-state-business-primary'])
+      if (fromTokens !== undefined) return fromTokens
+      try {
+        return colorToHex(getComputedStyle(document.body).getPropertyValue('--dsw-alias-state-business-primary'))
+      } catch {
+        /* no body yet */
+      }
+      return undefined
+    }
+
     /** Module A: a fixed, click-through canvas with the reading-column guard. */
     function AcidBackdrop() {
-      const enabled = useSyncExternalStore(subscribe, () => getParams().backdrop)
+      const enabled = useSyncExternalStore(subscribe, () => getParams().backdrop && getParams().background === 'crystal')
+      const themeSnapshot = useSyncExternalStore(subscribeTheme, getThemeSnapshot)
+      const accent = themeAccentHex(themeSnapshot)
       const canvasRef = useRef(null)
+      const backdropRef = useRef(null)
       const crystal = React.useMemo(() => buildCrystal(20, 1), [])
+
+      useEffect(() => createMediaLayer(), [])
+      useEffect(() => createIntroPlayer(), [])
 
       useEffect(() => {
         if (!enabled) return undefined
@@ -903,13 +1705,21 @@ void main() {
         if (canvas === null) return undefined
         let handle
         try {
-          handle = createBackdrop(canvas, crystal)
+          handle = createBackdrop(canvas, crystal, accent)
         } catch (error) {
           console.warn('[dsh-acid-core] canvas init failed', error)
           return undefined
         }
-        return () => handle?.dispose()
+        backdropRef.current = handle
+        return () => {
+          if (backdropRef.current === handle) backdropRef.current = undefined
+          handle?.dispose()
+        }
       }, [enabled, crystal])
+
+      useEffect(() => {
+        backdropRef.current?.setAccent(accent)
+      }, [accent, enabled])
 
       if (!enabled) return null
       return h('div', { className: 'dsh-acid-field', 'data-plugin': PKG, 'aria-hidden': true },
@@ -918,7 +1728,7 @@ void main() {
 
     /** One row of the sandbox: label, range input, live value. */
     function ControlRow(props) {
-      const { id, label, value, min, max, step, onChange } = props
+      const { id, label, value, min, max, step, onChange, format } = props
       return h('label', { className: 'dsh-acid-row', htmlFor: `dsh-acid-${id}` },
         h('span', { className: 'dsh-acid-key' }, label),
         h('input', {
@@ -931,7 +1741,7 @@ void main() {
           value,
           onChange: (event) => onChange(Number(event.currentTarget.value)),
         }),
-        h('span', { className: 'dsh-acid-val' }, Number(value).toFixed(2)))
+        h('span', { className: 'dsh-acid-val' }, format ? format(value) : Number(value).toFixed(2)))
     }
 
     /** A labelled switch with explicit pressed state. */
@@ -952,7 +1762,8 @@ void main() {
     function themeLabel(t, id) {
       if (id === 'light') return t('theme.light')
       if (id === 'dark') return t('theme.dark')
-      if (id === THEME_ID) return t('theme.acid')
+      const spec = THEME_SPECS.find((entry) => entry.id === id)
+      if (spec !== undefined) return t(spec.labelKey)
       return id
     }
 
@@ -984,6 +1795,108 @@ void main() {
       h('span', { className: 'dsh-acid-tile-meta' }, active ? t('theme.current') : theme.colorScheme))
     }
 
+    function IntroSettings({ t }) {
+      const current = useSyncExternalStore(subscribe, getParams)
+      const info = useSyncExternalStore(subscribeIntro, getIntro)
+      useEffect(() => {
+        if (current.introMode === 'video') void refreshVideos()
+      }, [current.introMode])
+      return h('section', { className: 'dsh-acid-card', 'data-acid-section': 'intro' },
+        h('div', { className: 'dsh-acid-card-head' },
+          h('h3', { className: 'dsh-acid-card-title' }, t('sec.intro')),
+          h(Toggle, { label: t('intro.enable'), on: current.introEnabled, onToggle: () => toggleFlag('introEnabled') })),
+        h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('intro.mode')),
+          h('select', { className: 'dsh-acid-select dsh-acid-intro-select', value: current.introMode,
+            onChange: (event) => setParam('introMode', event.currentTarget.value) },
+          ['animation', 'video'].map((mode) => h('option', { key: mode, value: mode }, t(`intro.${mode}`))))),
+        h('p', { className: 'dsh-acid-help' }, t(current.introMode === 'animation' ? 'intro.animationHint' : 'intro.hint')),
+        current.introMode === 'video' ? h(React.Fragment, null,
+          h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('intro.select')),
+            h('select', { className: 'dsh-acid-select dsh-acid-intro-select', value: current.introVideo,
+              onChange: (event) => setParam('introVideo', event.currentTarget.value) },
+            h('option', { value: '' }, t('intro.auto')),
+            current.introVideo && !info.videos.some((entry) => entry.name === current.introVideo)
+              ? h('option', { value: current.introVideo }, current.introVideo) : null,
+            info.videos.map((entry) => h('option', { key: entry.name, value: entry.name }, entry.name)))),
+          h('div', { className: 'dsh-acid-library-actions' },
+            h('button', { type: 'button', className: 'dsh-acid-mini', disabled: info.opening,
+              onClick: () => { void openVideoDirectory() } }, t('intro.open')),
+            h('button', { type: 'button', className: 'dsh-acid-mini', disabled: info.loading,
+              onClick: () => { void refreshVideos(true) } }, t('intro.refresh'))),
+          info.directory ? h('p', { className: 'dsh-acid-path' }, info.directory) : null,
+          info.libraryError ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('intro.libraryError')) : null,
+          info.openError ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('intro.openError')) : null) : null,
+        h('div', { className: 'dsh-acid-library-actions' },
+          h('button', { type: 'button', className: 'dsh-acid-mini', disabled: info.loading || (current.introMode === 'video' && info.videos.length === 0),
+            onClick: () => { void replayIntro() } }, t('intro.replay'))),
+        h('p', { role: 'status', 'aria-live': 'polite', className: 'dsh-acid-help' },
+          t(current.introMode === 'video' && !info.loading && !info.libraryError && info.videos.length === 0 ? 'intro.empty' : `intro.${info.phase}`, { name: info.name })),
+        reduceMotion ? h('p', { className: 'dsh-acid-help' }, t('intro.motionHint')) : null)
+    }
+
+    function MediaSettings({ t }) {
+      const current = useSyncExternalStore(subscribe, getParams)
+      const files = useSyncExternalStore(subscribeLibrary, getLibrary)
+      const state = useSyncExternalStore(subscribeScene, getScene)
+      useEffect(() => {
+        if (current.background === 'image') void refreshLibrary()
+      }, [current.background])
+      const percent = (value) => `${Math.round(value * 100)}%`
+      const mediaControl = (key, label) => h(ControlRow, { key, id: key, label: t(label), ...MEDIA_SPEC[key], value: current[key],
+        format: percent, onChange: (value) => setParam(key, value) })
+      return h(React.Fragment, null,
+        h('section', { className: 'dsh-acid-card' },
+          h('div', { className: 'dsh-acid-card-head' },
+            h('h3', { className: 'dsh-acid-card-title' }, t('sec.background')),
+            h(Toggle, { label: t('background.enable'), on: current.backdrop, onToggle: () => toggleFlag('backdrop') })),
+          h('div', { className: 'dsh-acid-modes', role: 'group', 'aria-label': t('sec.background') },
+            ['crystal', 'image', 'none'].map((mode) => h('button', { key: mode, type: 'button',
+              className: 'dsh-acid-mode', 'aria-pressed': current.background === mode,
+              onClick: () => setParam('background', mode) }, t(`background.${mode}`)))),
+          current.background === 'image' ? h(React.Fragment, null,
+            h('p', { className: 'dsh-acid-help' }, t('background.imageHint')),
+            h('div', { className: 'dsh-acid-library-actions' },
+              h('button', { type: 'button', className: 'dsh-acid-mini', disabled: files.opening,
+                onClick: () => { void openWallpaperDirectory() } }, t('background.open')),
+              h('button', { type: 'button', className: 'dsh-acid-mini', disabled: files.loading,
+                onClick: () => { void refreshLibrary() } }, t('background.refresh'))),
+            files.directory ? h('p', { className: 'dsh-acid-path' }, files.directory) : null,
+            h('div', { role: 'status', 'aria-live': 'polite', className: 'dsh-acid-help' },
+              files.loading ? t('background.loading') : files.error ? t('background.error')
+                : files.images.length === 0 ? t('background.empty')
+                  : current.image ? t('background.selected', { name: current.image }) : t('background.unselected')),
+            files.openError ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('background.openError')) : null,
+            state.imageState === 'error' ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('background.imageError')) : null,
+            h('div', { className: 'dsh-acid-images', 'aria-label': t('background.image') },
+              files.images.map((entry) => h('button', { key: entry.name, type: 'button', className: 'dsh-acid-image-tile',
+                'aria-pressed': current.image === entry.name, title: entry.name, onClick: () => chooseImage(entry.name) },
+              h('img', { src: imageUrl(entry.name), alt: '', loading: 'lazy', decoding: 'async' }),
+              h('span', null, entry.name)))),
+            h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('background.fit')),
+              h('select', { className: 'dsh-acid-select', value: current.imageFit,
+                onChange: (event) => setParam('imageFit', event.currentTarget.value) },
+              ['cover', 'contain'].map((fit) => h('option', { key: fit, value: fit }, t(`background.${fit}`))))),
+            mediaControl('veilDark', 'background.veilDark'), mediaControl('veilLight', 'background.veilLight'),
+            h('p', { className: 'dsh-acid-help' }, t('background.veilHint'))) : null),
+        h('section', { className: 'dsh-acid-card' },
+          h('div', { className: 'dsh-acid-card-head' },
+            h('h3', { className: 'dsh-acid-card-title' }, t('sec.banner')),
+            h(Toggle, { label: t('banner.enable'), on: current.bannerEnabled, onToggle: () => toggleFlag('bannerEnabled') })),
+          h('label', { className: 'dsh-acid-banner-input' }, h('span', null, t('banner.text')),
+            h('input', { type: 'text', className: 'dsh-acid-text', value: current.banner,
+              placeholder: t('banner.placeholder'),
+              onChange: (event) => setParam('banner', event.currentTarget.value) })),
+          mediaControl('bannerOpacity', 'banner.opacity'),
+          h('p', { className: 'dsh-acid-help' }, t('banner.hint'))),
+        h('details', { className: 'dsh-acid-diagnostics' },
+          h('summary', null, t('diagnostics.title')),
+          h('dl', null,
+            h('dt', null, t('diagnostics.version')), h('dd', null, VERSION),
+            h('dt', null, t('diagnostics.directory')), h('dd', null, files.directory || 'DSH_HOME/acid-core/wallpapers'),
+            h('dt', null, t('diagnostics.source')), h('dd', null, current.image || t('diagnostics.none')),
+            h('dt', null, t('diagnostics.state')), h('dd', null, t(`image.${state.imageState}`)))))
+    }
+
     /** Module B: the Acid Core section inside Settings. */
     function AcidSettings(props) {
       const t = typeof props?.t === 'function' ? props.t : fallbackT
@@ -1001,6 +1914,8 @@ void main() {
           h('h2', { className: 'dsh-acid-settings-title' }, t('meta.title')),
           h('p', { className: 'dsh-acid-settings-sub' }, t('meta.description'))),
 
+        h(IntroSettings, { t }),
+
         h('section', { className: 'dsh-acid-card' },
           h('div', { className: 'dsh-acid-card-head' },
             h('h3', { className: 'dsh-acid-card-title' }, t('sec.theme')),
@@ -1015,6 +1930,8 @@ void main() {
             }))),
           h('p', { className: 'dsh-acid-help' }, t('sec.themeHint')),
           h('p', { className: 'dsh-acid-help' }, t('hint.budget'))),
+
+        h(MediaSettings, { t }),
 
         h('section', { className: 'dsh-acid-card' },
           h('div', { className: 'dsh-acid-card-head' },
@@ -1031,10 +1948,57 @@ void main() {
             onChange: (value) => set(id, value),
           })),
           h('div', { className: 'dsh-acid-flags' },
-            h(Toggle, { label: t('ctl.backdrop'), on: current.backdrop, onToggle: () => toggleFlag('backdrop') }),
+            h(Toggle, { label: t('ctl.statusbar'), on: current.statusbar, onToggle: () => toggleFlag('statusbar') }),
             h('button', { type: 'button', className: 'dsh-acid-mini', onClick: resetParams }, t('ctl.reset'))),
           h('p', { className: 'dsh-acid-help' }, t('sec.crystalHint')),
           h('p', { className: 'dsh-acid-help' }, t('hint.accent'))))
+    }
+
+    /** Cached WebGL renderer name: probing a second context is not free. */
+    let cachedRenderer
+    function webglRendererName() {
+      if (cachedRenderer !== undefined) return cachedRenderer
+      cachedRenderer = null
+      try {
+        const canvas = document.createElement('canvas')
+        const gl = canvas.getContext('webgl2') || canvas.getContext('webgl')
+        if (gl !== null && gl !== undefined) {
+          const info = gl.getExtension('WEBGL_debug_renderer_info')
+          const value = info === null || info === undefined
+            ? gl.getParameter(gl.RENDERER)
+            : gl.getParameter(info.UNMASKED_RENDERER_WEBGL)
+          if (typeof value === 'string' && value !== '') cachedRenderer = value.length > 44 ? `${value.slice(0, 44)}…` : value
+          gl.getExtension('WEBGL_lose_context')?.loseContext()
+        }
+      } catch {
+        cachedRenderer = null
+      }
+      return cachedRenderer
+    }
+
+    /**
+     * Module D: the resident status strip in `shell.bottom`. A thin row of
+     * numbers that says whether the layer is running and on which palette; the
+     * switch lives in Settings so hiding it costs one click.
+     */
+    function AcidStatus(props) {
+      const t = typeof props?.t === 'function' ? props.t : fallbackT
+      const enabled = useSyncExternalStore(subscribe, () => getParams().statusbar)
+      const frameRate = useSyncExternalStore(subscribe, getFps)
+      const snapshot = useSyncExternalStore(subscribeTheme, getThemeSnapshot)
+      if (!enabled) return null
+      const dpr = typeof window !== 'undefined' && Number.isFinite(window.devicePixelRatio) ? window.devicePixelRatio : 1
+      const renderer = webglRendererName()
+      const activeId = snapshot?.active?.id
+      const themeName = activeId === undefined ? '—' : themeLabel(t, activeId)
+      const cells = [
+        `${t('status.fps')} ${frameRate}`,
+        `${t('status.dpr')} ${dpr.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')}`,
+        renderer === null ? null : `${t('status.gl')} ${renderer}`,
+        `${t('status.theme')} ${themeName}`,
+      ].filter((cell) => cell !== null)
+      return h('div', { className: 'dsh-acid-status', 'data-plugin': PKG, title: t('status.hint') },
+        cells.map((cell) => h('span', { key: cell, className: 'dsh-acid-status-cell' }, cell)))
     }
 
     /** The converged state indicator in the conversation header. */
@@ -1066,9 +2030,26 @@ void main() {
   /* The only three saturated values in the whole layer. */
   --acid-accent:#CCFF00;
   --acid-accent-soft:#D9FF57;
+  --acid-brand-hue:16deg;
   --acid-cyan:#00F0FF;
   --acid-rule:#1E2330;
 }
+
+/* The active palette supplies the real accent: the token below is written on
+   body by the theme presenter, so every affordance rule follows the palette
+   without the stylesheet knowing which one is on. */
+body[data-acid-theme="on"]{
+  --acid-accent:var(--dsw-alias-state-business-primary);
+  --acid-accent-soft:var(--dsw-alias-button-info-hover);
+}
+/* The whale mark is recoloured through a filter chain; the hue that lands on
+   the target accent depends on the palette, so each palette carries its own
+   rotation. A miss only means an approximate tint, never a broken mark. */
+body[data-acid-theme-id="acid-orange"]{--acid-brand-hue:-24deg}
+body[data-acid-theme-id="acid-cyan"]{--acid-brand-hue:114deg}
+body[data-acid-theme-id="acid-violet"]{--acid-brand-hue:193deg}
+body[data-acid-theme-id="acid-rose"]{--acid-brand-hue:268deg}
+body[data-acid-theme-id="acid-orange-light"]{--acid-brand-hue:-24deg}
 
 /* ── A. backdrop ─────────────────────────────────────────────────────── */
 .dsh-acid-field{
@@ -1076,6 +2057,35 @@ void main() {
   opacity:0; animation:dsh-acid-in 900ms ease-out 60ms forwards;
 }
 .dsh-acid-canvas{display:block;width:100%;height:100%}
+.dsh-acid-canvas[hidden]{display:none !important}
+/* The host theme presenter writes tokens inline; this override is scoped and
+   reversible. It deliberately leaves every other surface token alone. */
+body[data-acid-media="on"]{--dsw-alias-bg-base:transparent !important;background:transparent !important}
+#dsh-acid-media{position:fixed;inset:0;z-index:-1;overflow:hidden;
+  background:var(--acid-media-ground);pointer-events:none !important}
+#dsh-acid-media [hidden],#dsh-acid-media[hidden]{display:none !important}
+#dsh-acid-media>*{pointer-events:none !important}
+#dsh-acid-media>img{position:absolute;inset:0;width:100%;height:100%;object-position:center}
+.dsh-acid-veil{position:absolute;inset:0;background:var(--acid-media-ground);opacity:var(--acid-media-veil)}
+.dsh-acid-banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
+  display:block;white-space:nowrap;width:max-content;line-height:1.05;font-weight:800;
+  color:var(--acid-banner-color);opacity:var(--acid-banner-opacity);user-select:none}
+#dsh-acid-intro{position:fixed;inset:0;z-index:2147482990;overflow:hidden;pointer-events:none;
+  background:var(--acid-intro-ground,#08090C);color:var(--acid-intro-ink,#F1F5F9);
+  opacity:1;transition:opacity 600ms cubic-bezier(.2,.8,.2,1)}
+#dsh-acid-intro[data-phase="fading"]{opacity:0}
+#dsh-acid-intro>video{display:block;width:100%;height:100%;object-fit:cover;pointer-events:none}
+.dsh-acid-intro-scene{height:100%;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:28px;background:radial-gradient(ellipse at 50% 45%,color-mix(in srgb,var(--acid-intro-accent) 5%,transparent),transparent 60%)}
+.dsh-acid-intro-crystal{display:block;width:min(44vh,300px);height:min(44vh,300px);color:var(--acid-intro-accent)}
+.dsh-acid-intro-title{font-size:clamp(24px,4.2vw,46px);font-weight:600;line-height:1.2;letter-spacing:-.025em;text-align:center}
+.dsh-acid-intro-line{width:120px;height:1px;background:color-mix(in srgb,var(--acid-intro-accent) 16%,transparent);margin-top:4px}
+.dsh-acid-intro-line span{display:block;height:100%;background:var(--acid-intro-accent);transform-origin:left}
+#dsh-acid-intro .dsh-acid-intro-skip{position:absolute;top:calc(var(--dsh-frame-top-clearance,0px) + 16px);left:20px;
+  pointer-events:auto;border:1px solid #ffffff66;border-radius:6px;padding:8px 14px;
+  color:#fff;background:#08090C;cursor:pointer;font:inherit;font-size:12px}
+#dsh-acid-intro .dsh-acid-intro-skip:focus-visible{outline:2px solid var(--acid-intro-accent,#CCFF00);outline-offset:4px}
+@media(prefers-reduced-motion:reduce){#dsh-acid-intro{transition:none}}
 @keyframes dsh-acid-in{from{opacity:0}to{opacity:1}}
 @media (prefers-reduced-motion: reduce){.dsh-acid-field{animation:none;opacity:1}}
 
@@ -1145,6 +2155,20 @@ void main() {
 .dsh-acid-range:focus-visible{outline:1px solid var(--acid-accent);outline-offset:4px}
 
 .dsh-acid-flags{display:flex;align-items:center;gap:10px;padding-top:2px}
+
+/* ── D. resident status strip (shell.bottom) ──────────────────────────── */
+.dsh-acid-status{display:flex;align-items:center;height:22px;padding:0 12px;
+  overflow:hidden;white-space:nowrap;
+  border-top:1px solid var(--dsw-alias-border-l1);
+  background:var(--dsw-alias-bg-base, #08090C);
+  color:var(--dsw-alias-label-tertiary);
+  font-family:var(--dsw-font-family-code, ui-monospace, monospace);
+  font-size:10px;letter-spacing:.06em;font-variant-numeric:tabular-nums;
+  user-select:none;-webkit-user-select:none}
+.dsh-acid-status-cell{display:inline-flex;align-items:center;min-width:0;
+  overflow:hidden;text-overflow:ellipsis}
+.dsh-acid-status-cell+.dsh-acid-status-cell::before{
+  content:"·";margin:0 8px;opacity:.45}
 .dsh-acid-toggle{display:inline-flex;align-items:center;gap:6px;padding:4px 9px;
   background:transparent;border:1px solid var(--dsw-alias-border-l2);border-radius:5px;
   color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;cursor:pointer}
@@ -1157,6 +2181,40 @@ void main() {
   border-radius:5px;color:var(--dsw-alias-label-secondary);font:inherit;font-size:11px;cursor:pointer}
 .dsh-acid-mini:hover{color:var(--dsw-alias-label-primary);border-color:var(--dsw-alias-border-l4)}
 .dsh-acid-help{margin:0;font-size:11px;line-height:17px;color:var(--dsw-alias-label-tertiary)}
+.dsh-acid-modes{display:flex;flex-wrap:wrap;gap:6px}
+.dsh-acid-mode{flex:1;min-width:68px;padding:9px 14px;border:1px solid var(--dsw-alias-border-l2);
+  border-radius:6px;background:transparent;color:var(--dsw-alias-label-secondary);font:inherit;cursor:pointer}
+.dsh-acid-mode[aria-pressed="true"]{border-color:var(--acid-accent);color:var(--dsw-alias-label-primary);
+  background:color-mix(in srgb,var(--acid-accent) 7%,transparent)}
+.dsh-acid-mode:hover,.dsh-acid-image-tile:hover{border-color:var(--dsw-alias-label-secondary)}
+.dsh-acid-library-actions{display:flex;flex-wrap:wrap;gap:8px}
+.dsh-acid-path{margin:0;overflow-wrap:anywhere;font-size:11px;line-height:17px;color:var(--dsw-alias-label-secondary)}
+.dsh-acid-images{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;max-height:320px;overflow:auto}
+.dsh-acid-image-tile{display:flex;flex-direction:column;gap:6px;min-width:0;padding:5px;
+  border:1px solid var(--dsw-alias-border-l2);border-radius:6px;background:transparent;
+  color:var(--dsw-alias-label-primary);font:inherit;cursor:pointer;text-align:left}
+.dsh-acid-image-tile[aria-pressed="true"]{border-color:var(--acid-accent)}
+.dsh-acid-image-tile img{display:block;width:100%;aspect-ratio:16/10;object-fit:cover;
+  border-radius:3px;background:var(--dsw-alias-bg-layer-2)}
+.dsh-acid-image-tile span{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px}
+.dsh-acid-select-row{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.dsh-acid-select,.dsh-acid-text{box-sizing:border-box;min-width:0;padding:7px 9px;
+  border:1px solid var(--dsw-alias-border-l2);border-radius:5px;background:var(--dsw-alias-bg-layer-2);
+  color:var(--dsw-alias-label-primary);font:inherit}
+.dsh-acid-intro-select{max-width:100%;width:min(70%,420px)}
+.dsh-acid-banner-input{display:flex;flex-direction:column;gap:6px}
+.dsh-acid-text{width:100%;caret-color:var(--acid-accent)}
+.dsh-acid-text::placeholder{color:var(--dsw-alias-label-secondary)}
+.dsh-acid-error{margin:0;color:var(--dsw-alias-label-primary);font-size:12px;line-height:19px}
+.dsh-acid-diagnostics{font-size:11px;color:var(--dsw-alias-label-secondary)}
+.dsh-acid-diagnostics summary{cursor:pointer;padding:6px 0}
+.dsh-acid-diagnostics dl{display:grid;grid-template-columns:auto minmax(0,1fr);gap:6px 16px;margin:8px 0}
+.dsh-acid-diagnostics dd{margin:0;overflow-wrap:anywhere}
+.dsh-acid-settings :is(button,input,select,summary):focus-visible{outline:2px solid var(--acid-accent);outline-offset:3px}
+.dsh-acid-settings button:disabled{opacity:.5;cursor:wait}
+.dsh-acid-settings-head,.dsh-acid-card{min-width:0}
+@media(max-width:480px){.dsh-acid-card{padding:12px}.dsh-acid-card-head{flex-wrap:wrap}
+  .dsh-acid-row{grid-template-columns:88px minmax(0,1fr) 42px}.dsh-acid-diagnostics dl{grid-template-columns:minmax(0,1fr)}}
 
 /* ── C. theme detail: focus, caret, reasoning fold ───────────────────── */
 
@@ -1210,7 +2268,7 @@ body[data-acid-theme="on"] [class*="_newSession"]:hover {
    (The multiply overlay this replaces tinted the whole bounding box, which is
    why it read as a lime rectangle.) */
 body[data-acid-theme="on"] :is([class*="_brandMark"], [class*="_railMark"], [class*="_fish"]) {
-  filter: brightness(0) saturate(100%) invert(89%) sepia(98%) saturate(1600%) hue-rotate(16deg) brightness(1.04);
+  filter: brightness(0) saturate(100%) invert(89%) sepia(98%) saturate(1600%) hue-rotate(var(--acid-brand-hue, 16deg)) brightness(1.04);
 }
 
 /* The wordmark artboard carries both the "deepseek" letters and the HARNESS
@@ -1260,6 +2318,16 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
         return () => style.remove()
       }, 'acid-core: styles')
 
+      ctx.effect(() => () => {
+        libraryRequest += 1
+        libraryAbort?.abort()
+        publishLibrary({ loading: false })
+        videoRequest += 1
+        videoAbort?.abort()
+        videoPromise = undefined
+        publishIntro({ loading: false })
+      }, 'acid-core: library requests')
+
       // 2. Dictionaries, when the locale service exists.
       ctx.inject(['locale'], (localeCtx) => {
         ctx.effect(() => {
@@ -1272,23 +2340,32 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
         }, 'acid-core: dictionaries')
       })
 
-      // 3. The Acid-Mono theme. Registering a complete theme is what keeps the
-      //    shell from showing stock colours on controls nobody remembered; the
-      //    user picks it from the tiles and can leave it in one click.
+      // 3. The palettes. Each one is a complete theme (a partial set would leave
+      //    stock colours on controls nobody remembered); the user picks from the
+      //    tiles and can leave in one click. The light palette is built on the
+      //    host's own light alias tokens so a host redesign carries over.
       ctx.inject(['theme'], (themeCtx) => {
         const theme = themeCtx.theme
         if (theme === undefined || typeof theme.register !== 'function') return
-        themeApi = theme
-        ctx.effect(() => {
-          // Mirror "this theme is active" onto the body so the affordance layer
-          // (lime icons/buttons) only exists while the acid theme is selected,
-          // and disappears the moment the user picks another one.
+        // The settings write behind a stock theme switch can replace this
+        // service. Registrations and listeners must leave with that injected
+        // context, otherwise retired services keep publishing old palettes.
+        themeCtx.effect(() => {
+          themeApi = theme
+          // Mirror "one of our palettes is active" onto the body so the
+          // affordance layer only exists while a bundle theme is selected, and
+          // disappears the moment the user picks a stock theme.
           const push = (snapshot) => {
             publishTheme(snapshot)
             try {
-              const active = snapshot?.active?.id === THEME_ID
-              if (active) document.body.setAttribute('data-acid-theme', 'on')
-              else document.body.removeAttribute('data-acid-theme')
+              const id = snapshot?.active?.id
+              if (CUSTOM_THEME_IDS.has(id)) {
+                document.body.setAttribute('data-acid-theme', 'on')
+                document.body.setAttribute('data-acid-theme-id', id)
+              } else {
+                document.body.removeAttribute('data-acid-theme')
+                document.body.removeAttribute('data-acid-theme-id')
+              }
             } catch {
               /* no body yet */
             }
@@ -1298,53 +2375,81 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
           } catch {
             /* snapshot unavailable: tiles render from the next theme/change */
           }
-          let dispose = () => {}
+          // The light palette needs a full light alias base; take the host's own
+          // so a palette revision is inherited instead of copied.
+          let stockLight
           try {
-            dispose = theme.register({ id: THEME_ID, colorScheme: 'dark', tokens: ACID_TOKENS }) ?? (() => {})
-          } catch (error) {
-            console.warn('[dsh-acid-core] theme registration rejected', error)
+            const themes = theme.getTheme?.()?.themes
+            const lightTheme = Array.isArray(themes) ? themes.find((entry) => entry?.id === 'light') : undefined
+            const tokens = lightTheme?.tokens
+            const aliasCount = tokens !== null && typeof tokens === 'object'
+              ? Object.keys(tokens).filter((name) => name.startsWith('--dsw-alias-')).length
+              : 0
+            if (aliasCount >= 100) stockLight = tokens
+          } catch {
+            /* no stock light palette: the light tile is simply not registered */
+          }
+          const disposers = []
+          for (const spec of THEME_SPECS) {
+            if (spec.scheme === 'light' && stockLight === undefined) continue
+            try {
+              const dispose = theme.register({
+                id: spec.id,
+                colorScheme: spec.scheme,
+                tokens: buildThemeTokens(spec, stockLight),
+              })
+              disposers.push(typeof dispose === 'function' ? dispose : () => {})
+            } catch (error) {
+              console.warn(`[dsh-acid-core] theme "${spec.id}" rejected`, error)
+            }
           }
           // Re-apply the remembered choice AFTER registering (setTheme rejects an
           // unregistered id): the host resets the preference to a built-in theme
-          // whenever the registration is disposed (HMR, reload, restart), which
-          // would otherwise silently drop the acid look.
-          if (acidRemembered()) {
+          // whenever the registration is disposed (HMR, reload, restart).
+          const remembered = rememberedTheme()
+          if (remembered !== null) {
             try {
-              theme.setTheme(THEME_ID)
+              theme.setTheme(remembered)
             } catch {
               /* registration not live yet */
             }
           }
-          // Refresh the local snapshot now that the theme exists: the settings
-          // page renders its tiles from it, and the registration itself changes
-          // the theme list.
+          // Refresh the local snapshot now that the themes exist: the settings
+          // page renders its tiles from it, and registration changes the list.
           try {
             push(theme.getTheme?.())
           } catch {
             /* snapshot unavailable */
           }
           let lastPreference = theme.getTheme?.()?.preference
-          if (lastPreference === undefined && acidRemembered()) lastPreference = THEME_ID
-          const off = ctx.on('theme/change', (snapshot) => {
+          if (lastPreference === undefined && remembered !== null) lastPreference = remembered
+          const off = themeCtx.on('theme/change', () => {
+            // A retiring controller can finish a settings write late. Read the
+            // current injected service instead of repainting its event payload.
+            const snapshot = theme.getTheme()
             push(snapshot)
-            // Forget the remembered choice only on a real transition away from
-            // the acid theme (the host's own Appearance row). A startup echo of
-            // the stored preference must not erase it before it is re-applied.
+            // Forget the remembered palette only on a real transition away from
+            // one of ours (the host's own Appearance row). A startup echo of the
+            // stored preference must not erase it before it is re-applied.
             const preference = snapshot?.preference
             if (preference === undefined) return
-            if (lastPreference === THEME_ID && preference !== THEME_ID) forgetAcid()
+            if (CUSTOM_THEME_IDS.has(lastPreference) && !CUSTOM_THEME_IDS.has(preference)) forgetAcid()
             lastPreference = preference
           })
           return () => {
             try {
               off?.()
-              document.body.removeAttribute('data-acid-theme')
+              if (themeApi === theme) {
+                themeApi = undefined
+                document.body.removeAttribute('data-acid-theme')
+                document.body.removeAttribute('data-acid-theme-id')
+              }
             } catch {
               /* already disposed */
             }
-            dispose()
+            for (const dispose of disposers) dispose()
           }
-        }, 'acid-core: theme')
+        }, 'acid-core: themes')
       })
 
       // 4. Backdrop in the overlay layer (click-through), the status chip and
@@ -1363,6 +2468,7 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
         }
 
         register('shell.overlay', { id: 'acid-backdrop', order: -10 }, AcidBackdrop, 'backdrop')
+        register('shell.bottom', { id: 'acid-status', order: 10 }, AcidStatus, 'status strip')
         register('conversation.header.leading', { id: 'acid-chip', order: 40 }, AcidChip, 'chip')
         register('settings.section', {
           id: 'acid-core',
@@ -1388,6 +2494,10 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
         buildCrystal, perspectiveMatrix, hexToRgb, PARAM_SPEC, clamp, reduceMotion,
         getParams, setParam, toggleFlag, resetParams, subscribe, subscribeTheme,
         getThemeSnapshot, publishTheme, selectTheme, ACID_TOKENS, THEME_PATCH, THEME_BASE,
+        THEME_SPECS, CUSTOM_THEME_IDS, LIGHT_PATCH, buildThemeTokens, accentPatch, rememberedTheme,
+        createBackdrop, createMediaLayer, normalizeParam, MEDIA_SPEC, MEDIA_DEFAULTS,
+        refreshLibrary, openWallpaperDirectory, chooseImage, getLibrary, getScene, MediaSettings, CSS,
+        createIntroPlayer, replayIntro, refreshVideos, openVideoDirectory, getIntro, IntroSettings,
       },
     }
   },

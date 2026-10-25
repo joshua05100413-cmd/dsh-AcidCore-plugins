@@ -1,11 +1,11 @@
 # DSH plugins
 
-DeepSeek Harness（DSH）Web 客户端插件合集。每个插件都是**零依赖、零构建步骤**的纯 JS 包，通过 DSH 的 manifest（`dsh.bundle.patch` + `dsh.client`）挂载，改完保存即热生效。
+DeepSeek Harness（DSH）Web 客户端插件合集。每个插件都是**零依赖、零构建步骤**的纯 JS 包，通过 DSH 的 manifest（`dsh.bundle.patch` + `dsh.client`）挂载。设置即时生效；更新插件代码后重启 DSH。
 
 | 插件 | 作用 |
 |---|---|
-| [`dsh-acid-core`](dsh-acid-core/) | 酸性科技风：WebGL 线框晶体背景 + Acid-Mono 完整主题 + 设置页控制面板 |
-| [`dsh-composer-meter`](dsh-composer-meter/) | 输入框下方实时字数与 token 估算 |
+| [`dsh-acid-core`](dsh-acid-core/) | 晶体开机动画 + 六套完整配色 + WebGL 晶体 / 本地壁纸 + 主题遮罩与背景大字 |
+| [`dsh-composer-meter`](dsh-composer-meter/) | 输入框统计 pill：字数、预估 token、按官方价目估算的费用；含草稿保险箱与清洗 |
 
 ## 截图
 
@@ -21,7 +21,7 @@ DeepSeek Harness（DSH）Web 客户端插件合集。每个插件都是**零依�
 
 ## 安装
 
-插件是**目录链接**安装，改代码即时生效，不需要重新打包。两种方式：
+插件是**目录链接**安装，不需要重新打包，更新代码后重启 DSH。两种方式：
 
 **A. 用 DSH 图形界面（推荐）**
 

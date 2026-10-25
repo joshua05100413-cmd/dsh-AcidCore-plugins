@@ -1,10 +1,10 @@
 {
   "meta": {
     "title": "Composer Meter",
-    "description": "Live character count and a rough token estimate for the draft, under the composer."
+    "description": "Composer dock utility: character/token estimate, session cost from DeepSeek's published prices, plus a draft vault and an explicit draft cleaner."
   },
   "chars": "chars",
   "tokens": "tokens",
   "estimate": "≈",
-  "hint": "Rough estimate; the model tokenizer decides the real count."
+  "hint": "Rough estimate; the tokenizer and your bill decide."
 }

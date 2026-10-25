@@ -217,6 +217,88 @@ if (!translatedText.includes('CHARS') || !translatedText.includes('TOKENS')) {
   problems.push(`custom translator ignored: "${translatedText}"`)
 }
 
+// ── stat pill contract ──────────────────────────────────────────────────────
+const pill = render(Meter({ useInput: (selector) => selector({ draft: 'abc' }) }))
+if (pill?.type !== 'button') problems.push(`pill must be a button, got ${pill?.type}`)
+if (pill?.props?.['data-composer-stat'] !== 'composer-meter') problems.push('pill must carry data-composer-stat=composer-meter')
+if (pill?.props?.['aria-expanded'] !== 'false') problems.push('pill starts collapsed')
+
+// Cost is session-level: with usage and the built-in price table it stays
+// visible even when the draft is empty.
+const seedUsage = { uncachedInputTokens: 1e6, cacheReadTokens: 2e6, cacheWriteTokens: 0, outputTokens: 1e6 }
+const costOnly = render(Meter({
+  useInput: (selector) => selector({ draft: '' }),
+  useProjection: () => seedUsage,
+}))
+if (costOnly === null) problems.push('empty draft with usage must still render the cost pill')
+else if (!textOf(costOnly).includes('¥')) problems.push(`cost-only pill missing ¥: "${textOf(costOnly)}"`)
+
+// ── pure helpers ────────────────────────────────────────────────────────────
+const test = exports_.__test
+if (test === undefined) {
+  problems.push('browser half: __test seams missing')
+} else {
+  const usage = { uncachedInputTokens: 1e6, cacheReadTokens: 1e6, cacheWriteTokens: 0, outputTokens: 1e6 }
+  const cost = test.computeCost(usage, { input: 2, cacheRead: 0.2, cacheWrite: 2, output: 8 })
+  if (cost === null || Math.abs(cost - 10.2) > 1e-9) problems.push(`computeCost: expected 10.2, got ${cost}`)
+  if (test.computeCost(undefined, { input: 2 }) !== null) problems.push('computeCost: missing usage must be null')
+  if (test.computeCost(usage, {}) !== null) problems.push('computeCost: empty price table must be null')
+  const money = [
+    [0, '0'],
+    [0.00123, '0.0012'],
+    [0.5, '0.500'],
+    [10.2, '10.20'],
+  ]
+  for (const [value, expected] of money) {
+    if (test.formatMoney(value) !== expected) problems.push(`formatMoney(${value}) = ${test.formatMoney(value)}, expected ${expected}`)
+  }
+  const parts = test.classifyDraft('a 汉字\n')
+  if (parts.cjk !== 2 || parts.latin !== 1 || parts.spaces !== 2) problems.push(`classifyDraft: ${JSON.stringify(parts)}`)
+  if (test.countLines('a\nb') !== 2) problems.push('countLines: wrong line count')
+
+  // Pricing: official presets, peak/idle switching, custom and legacy shapes.
+  const peakAt = new Date('2026-10-26T02:00:00Z') // Beijing Monday 10:00
+  const idleAt = new Date('2026-10-26T05:00:00Z') // Beijing Monday 13:00
+  const weekendAt = new Date('2026-10-25T02:00:00Z') // Beijing Sunday 10:00
+  if (test.isPeakHour(peakAt) !== true) problems.push('isPeakHour: Monday 10:00 Beijing must be peak')
+  if (test.isPeakHour(idleAt) !== false) problems.push('isPeakHour: Monday 13:00 Beijing must be idle')
+  if (test.isPeakHour(weekendAt) !== false) problems.push('isPeakHour: Sunday must be idle')
+  const flashPeak = test.resolvePricing({ mode: 'flash' }, peakAt)
+  if (flashPeak.prices.input !== 2 || flashPeak.prices.cacheRead !== 0.04 || flashPeak.prices.output !== 8) {
+    problems.push(`resolvePricing(flash, peak): ${JSON.stringify(flashPeak.prices)}`)
+  }
+  const flashIdle = test.resolvePricing({ mode: 'flash' }, idleAt)
+  if (flashIdle.prices.input !== 1 || flashIdle.prices.output !== 4) problems.push(`resolvePricing(flash, idle): ${JSON.stringify(flashIdle.prices)}`)
+  const proPeak = test.resolvePricing({ mode: 'pro' }, peakAt)
+  if (proPeak.prices.input !== 9 || proPeak.prices.output !== 27) problems.push(`resolvePricing(pro, peak): ${JSON.stringify(proPeak.prices)}`)
+  const custom = test.resolvePricing({ mode: 'custom', custom: { input: 3.5 } }, peakAt)
+  if (custom.prices.input !== 3.5 || custom.peak !== false) problems.push(`resolvePricing(custom): ${JSON.stringify(custom)}`)
+  const legacy = test.normalizePricing({ input: 1, cacheRead: 0.1 })
+  if (legacy.mode !== 'custom' || legacy.custom.input !== 1) problems.push(`normalizePricing(legacy): ${JSON.stringify(legacy)}`)
+  if (test.normalizePricing(null).mode !== 'flash') problems.push('normalizePricing(null) must fall back to flash')
+  const peakCost = test.computeCost(usage, flashPeak.prices)
+  if (peakCost === null || Math.abs(peakCost - 10.04) > 1e-9) problems.push(`computeCost(flash peak): expected 10.04, got ${peakCost}`)
+
+  // Draft cleanup: invisible characters and blank-line runs outside fences.
+  const dirty = 'a\u200b \n\n\n\nb \u00a0\n'
+  const cleaned = test.cleanDraft(dirty)
+  if (cleaned.text !== 'a\n\nb\n') problems.push(`cleanDraft: "${JSON.stringify(cleaned.text)}"`)
+  if (cleaned.changes === 0) problems.push('cleanDraft: no changes counted')
+  const fenced = '```\n a  \n\n\n\n```'
+  if (test.cleanDraft(fenced).text !== fenced) problems.push('cleanDraft: fenced code must stay byte-for-byte intact')
+
+  // Draft vault: minimum length, dedupe, count cap.
+  if (test.appendSnapshot([], 'short', 1).length !== 0) problems.push('appendSnapshot: short drafts must not snapshot')
+  const twenty = 'x'.repeat(20)
+  let vault = test.appendSnapshot([], twenty, 1)
+  if (vault.length !== 1) problems.push('appendSnapshot: one snapshot expected')
+  vault = test.appendSnapshot(vault, twenty, 2)
+  if (vault.length !== 1) problems.push('appendSnapshot: identical snapshot must not duplicate')
+  for (let i = 0; i < 30; i += 1) vault = test.appendSnapshot(vault, `${twenty}-${i}`, i)
+  if (vault.length > 20) problems.push(`appendSnapshot: cap ${vault.length} > 20`)
+  if (!/^\d{2}:\d{2}$/.test(test.formatClock(Date.now()))) problems.push('formatClock: expected HH:mm')
+}
+
 // ── report ──────────────────────────────────────────────────────────────────
 if (problems.length === 0) {
   console.log('OK — manifest, host half, bundle contract, slot wiring and rendering all pass')

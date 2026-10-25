@@ -1,9 +1,12 @@
 {
   "name": "dsh-acid-core",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "private": true,
   "type": "module",
-  "description": "Acid graphics layer for the DSH Web shell: WebGL wireframe crystal backdrop, physics-sandbox HUD bound to shader uniforms, and an Acid-Mono token layer.",
+  "description": "Acid Core: a crystal startup animation, optional intro videos, six complete palettes, local wallpapers and background lettering.",
+  "scripts": {
+    "test": "node validate.mjs && node test-background.mjs && node test-theme-lifecycle.mjs && node test-intro.mjs"
+  },
   "main": "./index.js",
   "exports": {
     ".": "./index.js",
