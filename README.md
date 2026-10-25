@@ -4,7 +4,7 @@ DeepSeek Harness（DSH）Web 客户端插件合集。每个插件都是**零依�
 
 | 插件 | 作用 |
 |---|---|
-| [`dsh-acid-core`](dsh-acid-core/) | 晶体开机动画 + 六套完整配色 + WebGL 晶体 / 本地壁纸 + 主题遮罩与背景大字 |
+| [`dsh-acid-core`](dsh-acid-core/) | 晶体开机动画 + 六套完整配色 + WebGL 晶体 / 本地图片 / 循环视频背景 + 主题遮罩与背景大字 |
 | [`dsh-composer-meter`](dsh-composer-meter/) | 输入框统计 pill：字数、预估 token、按官方价目估算的费用；含草稿保险箱与清洗 |
 
 ## 截图

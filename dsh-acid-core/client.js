@@ -42,12 +42,12 @@ window.__ModuleLoader__.load({
     const STORAGE_KEY = 'dsh.acid-core.params'
     /** Remembers that the user chose the acid theme (it is not a host preference). */
     const THEME_FLAG = 'dsh.acid-core.theme'
-    const VERSION = '0.3.1'
+    const VERSION = '0.4.0'
 
     const DICTS = {
       zh: {
         'meta.title': 'Acid Core',
-        'meta.description': '晶体开机动画、六套完整配色、本地壁纸与背景大字。选择背景，调整遮罩，让界面保持清晰。',
+        'meta.description': '晶体开机动画、六套完整配色、本地图片与视频背景。选择背景，调整遮罩，让界面保持清晰。',
         nav: 'Acid Core',
         'sec.theme': '主题',
         'sec.themeHint': '选中一个主题即全局生效；每套配色都是完整主题，不只覆盖强调色。随时可以选回「深色」或「浅色」。',
@@ -82,6 +82,20 @@ window.__ModuleLoader__.load({
         'sec.background': '背景',
         'background.crystal': '晶体',
         'background.image': '图片',
+        'background.video': '视频',
+        'background.videoHint': '静音循环播放本地 MP4 / M4V / WebM，单个不超过 2 GiB。建议使用短循环素材；切到后台自动暂停。',
+        'background.videoSelect': '背景视频',
+        'background.videoEmpty': '请选择视频',
+        'background.videoError': '视频无法播放。请检查文件和编码，刷新后重新选择；推荐 H.264 MP4 或 VP9 WebM。',
+        'background.pause': '暂停背景',
+        'background.resume': '继续播放',
+        'background.motion': '系统已开启减少动态效果，视频显示静止帧。',
+        'background.mediaFit': '画面适配',
+        'video.idle': '未启用',
+        'video.loading': '加载中…',
+        'video.ready': '正在循环播放',
+        'video.paused': '已暂停（保留画面）',
+        'video.error': '播放失败',
         'background.none': '无',
         'background.enable': '显示背景',
         'background.imageHint': '将图片放入下方目录，再刷新列表。支持 JPG、PNG、WebP、AVIF、GIF、BMP，单张不超过 32 MB。',
@@ -145,7 +159,7 @@ window.__ModuleLoader__.load({
       },
       en: {
         'meta.title': 'Acid Core',
-        'meta.description': 'A crystal startup animation, six complete palettes, local wallpapers and background lettering. Choose a background and adjust its veil for clear reading.',
+        'meta.description': 'A crystal startup animation, six complete palettes, local image and video backgrounds. Choose a background and adjust its veil for clear reading.',
         nav: 'Acid Core',
         'sec.theme': 'Theme',
         'sec.themeHint': 'Picking a tile applies globally. Every palette is a complete theme, not just an accent swap; pick Dark or Light again any time.',
@@ -180,6 +194,20 @@ window.__ModuleLoader__.load({
         'sec.background': 'Background',
         'background.crystal': 'Crystal',
         'background.image': 'Image',
+        'background.video': 'Video',
+        'background.videoHint': 'Loop a muted local MP4 / M4V / WebM, up to 2 GiB. Short loops work best; playback pauses in the background.',
+        'background.videoSelect': 'Background video',
+        'background.videoEmpty': 'Choose a video',
+        'background.videoError': 'Cannot play this video. Check the file and codec, refresh and select it again. H.264 MP4 or VP9 WebM is recommended.',
+        'background.pause': 'Pause background',
+        'background.resume': 'Resume playback',
+        'background.motion': 'Reduced motion is enabled. The video displays a still frame.',
+        'background.mediaFit': 'Media fit',
+        'video.idle': 'Inactive',
+        'video.loading': 'Loading…',
+        'video.ready': 'Looping',
+        'video.paused': 'Paused (frame preserved)',
+        'video.error': 'Playback failed',
         'background.none': 'None',
         'background.enable': 'Show background',
         'background.imageHint': 'Drop images into the folder below, then refresh. JPG, PNG, WebP, AVIF, GIF and BMP; up to 32 MB each.',
@@ -574,17 +602,17 @@ window.__ModuleLoader__.load({
       veilLight: { min: 0.55, max: 0.98, step: 0.01, value: 0.90 },
       bannerOpacity: { min: 0.02, max: 0.20, step: 0.01, value: 0.08 },
     }
-    const MEDIA_DEFAULTS = { background: 'crystal', image: '', imageFit: 'cover', banner: '', bannerEnabled: false, introEnabled: true, introMode: 'animation', introVideo: '' }
+    const MEDIA_DEFAULTS = { background: 'crystal', image: '', imageFit: 'cover', backgroundVideo: '', videoPaused: false, banner: '', bannerEnabled: false, introEnabled: true, introMode: 'animation', introVideo: '' }
 
     function normalizeParam(key, value) {
       const spec = PARAM_SPEC[key] ?? MEDIA_SPEC[key]
       if (spec) return typeof value === 'number' && Number.isFinite(value) ? clamp(value, spec.min, spec.max) : undefined
-      if (['backdrop', 'statusbar', 'bannerEnabled', 'introEnabled'].includes(key)) return typeof value === 'boolean' ? value : undefined
-      if (key === 'background') return ['crystal', 'image', 'none'].includes(value) ? value : undefined
+      if (['backdrop', 'statusbar', 'bannerEnabled', 'introEnabled', 'videoPaused'].includes(key)) return typeof value === 'boolean' ? value : undefined
+      if (key === 'background') return ['crystal', 'image', 'video', 'none'].includes(value) ? value : undefined
       if (key === 'imageFit') return ['cover', 'contain'].includes(value) ? value : undefined
       if (key === 'introMode') return ['animation', 'video'].includes(value) ? value : undefined
       if (key === 'banner') return typeof value === 'string' ? Array.from(value.replace(/[\r\n\t]/g, ' ')).slice(0, 80).join('') : undefined
-      if (key === 'image' || key === 'introVideo') return typeof value === 'string' && !/[\\/\x00-\x1f]/.test(value) && value.length <= 255 ? value : undefined
+      if (key === 'image' || key === 'introVideo' || key === 'backgroundVideo') return typeof value === 'string' && !/[\\/\x00-\x1f]/.test(value) && value.length <= 255 ? value : undefined
       return undefined
     }
 
@@ -743,7 +771,7 @@ window.__ModuleLoader__.load({
 
     // Local library and diagnostics are separate from animation frame updates.
     let library = { images: [], directory: '', loading: false, opening: false, error: false, openError: false, version: '' }
-    let scene = { imageState: 'idle' }
+    let scene = { imageState: 'idle', videoState: 'idle', motionReduced: reduceMotion }
     const libraryListeners = new Set()
     const sceneListeners = new Set()
     const subscribeLibrary = (listener) => { libraryListeners.add(listener); return () => libraryListeners.delete(listener) }
@@ -761,8 +789,22 @@ window.__ModuleLoader__.load({
 
     function reportImage(imageState) {
       if (scene.imageState === imageState) return
-      scene = { imageState }
+      scene = { ...scene, imageState }
       for (const listener of sceneListeners) listener()
+    }
+
+    function reportVideo(videoState, motionReduced = scene.motionReduced) {
+      if (scene.videoState === videoState && scene.motionReduced === motionReduced) return
+      scene = { ...scene, videoState, motionReduced }
+      for (const listener of sceneListeners) listener()
+    }
+
+    let backgroundVideoAttempt = 0
+    function chooseBackgroundVideo(name) {
+      if (normalizeParam('backgroundVideo', name) === undefined) return
+      backgroundVideoAttempt += 1
+      params = { ...params, backgroundVideo: name }
+      persist(); emit()
     }
 
     async function refreshLibrary() {
@@ -831,9 +873,13 @@ window.__ModuleLoader__.load({
       document.body.insertBefore(root, document.body.firstChild)
       let disposed = false
       let image = null
+      let isVideo = false, failed = false, playPending = false, playRequest = 0
+      const motion = window.matchMedia?.('(prefers-reduced-motion: reduce)')
+      let stillMotion = motion?.matches ?? reduceMotion
+      reportVideo(scene.videoState, stillMotion)
       let source = ''
       let loaded = false
-      let lastParams, lastTheme, lastImages
+      let lastParams, lastTheme, lastImages, lastVideos
       let initialGround
       try { initialGround = getComputedStyle(document.body).getPropertyValue('--dsw-alias-bg-base').trim() } catch { /* theme not live */ }
 
@@ -844,17 +890,45 @@ window.__ModuleLoader__.load({
         if (measured > 0) banner.style.fontSize = `${Math.max(12, Math.min(100 * (window.innerWidth * 0.92) / measured, window.innerHeight * 0.32))}px`
       }
       const clearImage = () => {
+        playRequest += 1; playPending = false
         if (!image) return
-        image.onload = image.onerror = null
+        image.onload = image.onerror = image.onloadeddata = image.onplaying = image.onstalled = null
+        if (isVideo) { try { image.pause() } catch { /* detached */ } }
         image.removeAttribute('src')
+        if (isVideo) { try { image.load() } catch { /* detached */ } }
         image.remove()
         image = null
       }
+      const syncPlayback = () => {
+        if (!image || !isVideo || failed) return
+        const candidate = image
+        if (document.hidden || stillMotion || params.videoPaused) {
+          if (playPending) { playRequest += 1; playPending = false }
+          candidate.pause()
+          if (loaded) reportVideo('paused')
+          return
+        }
+        if (playPending || !candidate.paused) return
+        playPending = true
+        const request = ++playRequest
+        const fail = () => {
+          if (disposed || image !== candidate || request !== playRequest) return
+          playPending = false; failed = true; loaded = false
+          candidate.pause(); reportVideo('error'); refresh(true)
+        }
+        try {
+          Promise.resolve(candidate.play()).then(() => {
+            if (disposed || image !== candidate || request !== playRequest) return
+            playPending = false
+            if (document.hidden || stillMotion || params.videoPaused) candidate.pause()
+          }, fail)
+        } catch { fail() }
+      }
       const refresh = (force = false) => {
         if (disposed) return
-        const p = getParams(), theme = getThemeSnapshot(), images = library.images
-        if (!force && p === lastParams && theme === lastTheme && images === lastImages) return
-        lastParams = p; lastTheme = theme; lastImages = images
+        const p = getParams(), theme = getThemeSnapshot(), images = library.images, videos = intro.videos
+        if (!force && p === lastParams && theme === lastTheme && images === lastImages && videos === lastVideos) return
+        lastParams = p; lastTheme = theme; lastImages = images; lastVideos = videos
         const dark = theme.active?.colorScheme ? theme.active.colorScheme !== 'light'
           : !(typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: light)').matches)
         const ground = theme.active?.tokens?.['--dsw-alias-bg-base'] || initialGround || (dark ? '#08090C' : '#FFFCF7')
@@ -863,32 +937,50 @@ window.__ModuleLoader__.load({
         root.style.setProperty('--acid-media-ink', dark ? '#F1F5F9' : '#2B2119')
         root.style.setProperty('--acid-banner-color', themeAccentHex(theme) || (dark ? '#F1F5F9' : '#2B2119'))
         root.style.setProperty('--acid-banner-opacity', String(p.bannerOpacity))
-        const wanted = p.backdrop && p.background === 'image' && p.image ? `${imageUrl(p.image)}&attempt=${imageAttempt}` : ''
+        const entry = videos.find((video) => video.name === p.backgroundVideo)
+        const wanted = !p.backdrop ? '' : p.background === 'image' && p.image ? `${imageUrl(p.image)}&attempt=${imageAttempt}`
+          : p.background === 'video' && p.backgroundVideo ? `/acid-core/video?name=${encodeURIComponent(p.backgroundVideo)}${entry ? `&v=${entry.modified}-${entry.size}` : ''}&attempt=${backgroundVideoAttempt}` : ''
         if (wanted !== source) {
           source = wanted; loaded = false; clearImage()
-          reportImage(wanted ? 'loading' : 'idle')
+          isVideo = p.background === 'video'; failed = false; playPending = false
+          reportImage(wanted && !isVideo ? 'loading' : 'idle')
+          reportVideo(wanted && isVideo ? 'loading' : 'idle')
           if (wanted) {
-            const candidate = document.createElement('img')
+            const candidate = document.createElement(isVideo ? 'video' : 'img')
             image = candidate
-            candidate.alt = ''
-            candidate.decoding = 'async'
-            candidate.onload = () => {
-              if (disposed || image !== candidate) return
+            if (isVideo) {
+              candidate.muted = true; candidate.defaultMuted = true; candidate.playsInline = true
+              candidate.loop = true; candidate.preload = 'auto'
+              candidate.setAttribute('aria-hidden', 'true')
+            } else { candidate.alt = ''; candidate.decoding = 'async' }
+            const ready = () => {
+              if (disposed || image !== candidate || failed) return
               loaded = true
               root.insertBefore(candidate, veil)
-              reportImage('ready')
+              if (isVideo) reportVideo(document.hidden || stillMotion || params.videoPaused ? 'paused' : 'ready')
+              else reportImage('ready')
               refresh(true)
             }
+            if (isVideo) {
+              candidate.onloadeddata = ready
+              candidate.onplaying = () => {
+                if (disposed || image !== candidate || failed) return
+                ready(); syncPlayback()
+              }
+            } else candidate.onload = ready
             candidate.onerror = () => {
               if (disposed || image !== candidate) return
-              loaded = false
-              reportImage('error')
+              loaded = false; failed = true
+              if (isVideo) { candidate.pause(); reportVideo('error') }
+              else reportImage('error')
               refresh(true)
             }
             candidate.src = wanted
+            if (isVideo) { try { candidate.load() } catch { candidate.onerror() } }
           }
         }
-        if (image) image.style.objectFit = p.imageFit
+        if (image) { image.style.objectFit = p.imageFit; image.hidden = !loaded }
+        syncPlayback()
         veil.hidden = !loaded
         banner.textContent = p.backdrop && p.bannerEnabled ? p.banner.trim() : ''
         banner.hidden = !banner.textContent
@@ -900,17 +992,26 @@ window.__ModuleLoader__.load({
       const offParams = subscribe(refresh)
       const offTheme = subscribeTheme(refresh)
       const offLibrary = subscribeLibrary(refresh)
+      const offVideos = subscribeIntro(refresh)
+      const onVisibility = () => syncPlayback()
+      const onMotion = (event) => { stillMotion = event.matches; reportVideo(scene.videoState, stillMotion); syncPlayback() }
+      document.addEventListener('visibilitychange', onVisibility)
+      motion?.addEventListener?.('change', onMotion)
       window.addEventListener('resize', fitBanner)
       refresh()
+      if (params.background === 'video') void refreshVideos()
       return () => {
         if (disposed) return
         disposed = true
-        offParams(); offTheme(); offLibrary()
+        offParams(); offTheme(); offLibrary(); offVideos()
+        document.removeEventListener('visibilitychange', onVisibility)
+        motion?.removeEventListener?.('change', onMotion)
         window.removeEventListener('resize', fitBanner)
         clearImage()
         root.remove()
         document.body.removeAttribute('data-acid-media')
         reportImage('idle')
+        reportVideo('idle')
       }
     }
 
@@ -1837,9 +1938,11 @@ void main() {
     function MediaSettings({ t }) {
       const current = useSyncExternalStore(subscribe, getParams)
       const files = useSyncExternalStore(subscribeLibrary, getLibrary)
+      const clips = useSyncExternalStore(subscribeIntro, getIntro)
       const state = useSyncExternalStore(subscribeScene, getScene)
       useEffect(() => {
         if (current.background === 'image') void refreshLibrary()
+        if (current.background === 'video') void refreshVideos()
       }, [current.background])
       const percent = (value) => `${Math.round(value * 100)}%`
       const mediaControl = (key, label) => h(ControlRow, { key, id: key, label: t(label), ...MEDIA_SPEC[key], value: current[key],
@@ -1850,7 +1953,7 @@ void main() {
             h('h3', { className: 'dsh-acid-card-title' }, t('sec.background')),
             h(Toggle, { label: t('background.enable'), on: current.backdrop, onToggle: () => toggleFlag('backdrop') })),
           h('div', { className: 'dsh-acid-modes', role: 'group', 'aria-label': t('sec.background') },
-            ['crystal', 'image', 'none'].map((mode) => h('button', { key: mode, type: 'button',
+            ['crystal', 'image', 'video', 'none'].map((mode) => h('button', { key: mode, type: 'button',
               className: 'dsh-acid-mode', 'aria-pressed': current.background === mode,
               onClick: () => setParam('background', mode) }, t(`background.${mode}`)))),
           current.background === 'image' ? h(React.Fragment, null,
@@ -1871,8 +1974,32 @@ void main() {
               files.images.map((entry) => h('button', { key: entry.name, type: 'button', className: 'dsh-acid-image-tile',
                 'aria-pressed': current.image === entry.name, title: entry.name, onClick: () => chooseImage(entry.name) },
               h('img', { src: imageUrl(entry.name), alt: '', loading: 'lazy', decoding: 'async' }),
-              h('span', null, entry.name)))),
-            h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('background.fit')),
+              h('span', null, entry.name))))) : null,
+          current.background === 'video' ? h(React.Fragment, null,
+            h('p', { className: 'dsh-acid-help' }, t('background.videoHint')),
+            h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('background.videoSelect')),
+              h('select', { className: 'dsh-acid-select dsh-acid-intro-select', value: current.backgroundVideo, 'aria-label': t('background.videoSelect'),
+                onChange: (event) => chooseBackgroundVideo(event.currentTarget.value) },
+              h('option', { value: '' }, t('background.videoEmpty')),
+              current.backgroundVideo && !clips.videos.some((entry) => entry.name === current.backgroundVideo)
+                ? h('option', { value: current.backgroundVideo }, current.backgroundVideo) : null,
+              clips.videos.map((entry) => h('option', { key: entry.name, value: entry.name }, entry.name)))),
+            h('div', { className: 'dsh-acid-library-actions' },
+              h('button', { type: 'button', className: 'dsh-acid-mini', disabled: clips.opening,
+                onClick: () => { void openVideoDirectory() } }, t('intro.open')),
+              h('button', { type: 'button', className: 'dsh-acid-mini', disabled: clips.loading,
+                onClick: () => { backgroundVideoAttempt += 1; void refreshVideos(true) } }, t('background.refresh')),
+              h('button', { type: 'button', className: 'dsh-acid-mini', disabled: !current.backgroundVideo || state.motionReduced,
+                onClick: () => setParam('videoPaused', !current.videoPaused) }, t(current.videoPaused ? 'background.resume' : 'background.pause'))),
+            clips.directory ? h('p', { className: 'dsh-acid-path' }, clips.directory) : null,
+            h('p', { role: 'status', 'aria-live': 'polite', className: 'dsh-acid-help' },
+              clips.loading ? t('intro.loading') : !clips.videos.length && !clips.libraryError ? t('intro.empty') : t(`video.${state.videoState}`)),
+            clips.libraryError ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('intro.libraryError')) : null,
+            clips.openError ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('intro.openError')) : null,
+            state.videoState === 'error' ? h('p', { role: 'alert', className: 'dsh-acid-error' }, t('background.videoError')) : null,
+            state.motionReduced ? h('p', { className: 'dsh-acid-help' }, t('background.motion')) : null) : null,
+          ['image', 'video'].includes(current.background) ? h(React.Fragment, null,
+            h('label', { className: 'dsh-acid-select-row' }, h('span', null, t('background.mediaFit')),
               h('select', { className: 'dsh-acid-select', value: current.imageFit,
                 onChange: (event) => setParam('imageFit', event.currentTarget.value) },
               ['cover', 'contain'].map((fit) => h('option', { key: fit, value: fit }, t(`background.${fit}`))))),
@@ -2069,7 +2196,7 @@ body[data-acid-media="on"] #root :has(> [data-shell-overlay]){background:transpa
   background:var(--acid-media-ground);pointer-events:none !important}
 #dsh-acid-media [hidden],#dsh-acid-media[hidden]{display:none !important}
 #dsh-acid-media>*{pointer-events:none !important}
-#dsh-acid-media>img{position:absolute;inset:0;width:100%;height:100%;object-position:center}
+#dsh-acid-media>img,#dsh-acid-media>video{position:absolute;inset:0;width:100%;height:100%;object-position:center}
 .dsh-acid-veil{position:absolute;inset:0;background:var(--acid-media-ground);opacity:var(--acid-media-veil)}
 .dsh-acid-banner{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);
   display:block;white-space:nowrap;width:max-content;line-height:1.05;font-weight:800;
@@ -2499,9 +2626,9 @@ body[data-acid-theme="on"] [class*="_brandName"] svg text {
         getParams, setParam, toggleFlag, resetParams, subscribe, subscribeTheme,
         getThemeSnapshot, publishTheme, selectTheme, ACID_TOKENS, THEME_PATCH, THEME_BASE,
         THEME_SPECS, CUSTOM_THEME_IDS, LIGHT_PATCH, buildThemeTokens, accentPatch, rememberedTheme,
-        createBackdrop, createMediaLayer, normalizeParam, MEDIA_SPEC, MEDIA_DEFAULTS,
+        createBackdrop, createMediaLayer, normalizeParam, MEDIA_SPEC, MEDIA_DEFAULTS, fallbackT,
         refreshLibrary, openWallpaperDirectory, chooseImage, getLibrary, getScene, MediaSettings, CSS,
-        createIntroPlayer, replayIntro, refreshVideos, openVideoDirectory, getIntro, IntroSettings,
+        createIntroPlayer, replayIntro, refreshVideos, openVideoDirectory, getIntro, IntroSettings, chooseBackgroundVideo,
       },
     }
   },

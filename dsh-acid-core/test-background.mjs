@@ -9,7 +9,7 @@ import { createWallpaperHandlers } from './index.js'
 
 const source = await readFile(new URL('./client.js', import.meta.url), 'utf8')
 
-function load({ reduced = false, stored = {}, code = source, fetcher = async () => { throw new Error('offline') } } = {}) {
+function load({ reduced = false, stored = {}, code = source, play = () => Promise.resolve(), fetcher = async () => { throw new Error('offline') } } = {}) {
   const created = [], frames = new Map(), domEvents = new Map(), windowEvents = new Map(), canvasEvents = new Map()
   const storage = new Map([['dsh.acid-core.params', JSON.stringify(stored)]])
   let nextFrame = 0, draws = 0, loads = 0, buffers = 0, lost = false
@@ -28,6 +28,11 @@ function load({ reduced = false, stored = {}, code = source, fetcher = async () 
     getBoundingClientRect() { return { width: Array.from(this.textContent).length * 60 * (parseFloat(this.style.fontSize || '100') / 100) } }
     set src(value) { this._src = value; loads += 1 }
     get src() { return this._src }
+    paused = true
+    plays = 0
+    load() {}
+    pause() { this.paused = true }
+    play() { this.plays += 1; this.paused = false; return play() }
   }
   const add = (map) => (name, fn) => { if (!map.has(name)) map.set(name, new Set()); map.get(name).add(fn) }
   const remove = (map) => (name, fn) => map.get(name)?.delete(fn)
@@ -204,6 +209,74 @@ t.publishTheme({ active: { colorScheme: 'dark' } })
 assert.equal(env.loads, loadCount, 'disposed layer cannot be revived by theme changes')
 assert.ok(t.CSS.includes('body[data-acid-media="on"]{--dsw-alias-bg-base:transparent !important'))
 assert.equal(JSON.parse(env.storage.get('dsh.acid-core.params')).banner, '人类与 AI')
+
+// Real background lifecycle; intro settings must not change the loop source.
+const videoEnv = load({ stored: { background: 'video', backgroundVideo: '循环 #1.webm' } })
+const vt = videoEnv.test
+const stopVideo = vt.createMediaLayer()
+const videoRoot = videoEnv.document.body.children[0]
+const video = videoEnv.created.find((node) => node.tagName === 'video')
+assert.ok(video.src.includes('%E5%BE%AA%E7%8E%AF%20%231.webm'))
+assert.equal(video.muted && video.defaultMuted && video.loop && video.playsInline, true)
+assert.equal(videoRoot.hidden, true, 'shell stays opaque while loading')
+video.onloadeddata()
+assert.equal(videoRoot.hidden, false)
+await Promise.resolve()
+vt.setParam('videoPaused', true)
+assert.equal(video.paused, true)
+assert.equal(vt.getScene().videoState, 'paused')
+vt.setParam('videoPaused', false)
+assert.equal(video.paused, false)
+await Promise.resolve()
+videoEnv.visibility(true)
+assert.equal(video.paused, true)
+videoEnv.visibility(false)
+assert.equal(video.paused, false)
+const videoLoads = videoEnv.loads
+vt.setParam('introVideo', 'other.mp4')
+vt.setParam('veilDark', 0.7)
+vt.publishTheme({ active: { colorScheme: 'light' } })
+assert.equal(videoEnv.loads, videoLoads, 'theme, intro selection and veil never reload the background video')
+video.onerror()
+assert.equal(videoRoot.hidden, true)
+assert.equal(vt.getScene().videoState, 'error')
+assert.equal(videoEnv.document.body.getAttribute('data-acid-media'), null)
+vt.chooseBackgroundVideo('循环 #1.webm')
+const retryVideo = videoEnv.created.filter((node) => node.tagName === 'video').at(-1)
+assert.notEqual(video, retryVideo, 'reselecting retries a failed video')
+const staleVideo = retryVideo.onloadeddata
+vt.setParam('background', 'none')
+assert.equal(retryVideo.src, '')
+assert.equal(retryVideo.paused, true)
+staleVideo()
+assert.equal(videoRoot.hidden, true, 'late loads cannot revive removed videos')
+stopVideo(); stopVideo()
+assert.equal(videoEnv.listeners(), 0)
+
+const stillVideo = load({ reduced: true, stored: { background: 'video', backgroundVideo: 'still.webm' } })
+const stopStillVideo = stillVideo.test.createMediaLayer()
+const stillFrame = stillVideo.created.find((node) => node.tagName === 'video')
+stillFrame.onloadeddata()
+stillVideo.visibility(true); stillVideo.visibility(false)
+assert.equal(stillFrame.plays, 0, 'reduced motion loads a frame without starting playback')
+assert.equal(stillVideo.test.getScene().videoState, 'paused')
+stopStillVideo()
+
+const blockedVideo = load({ play: () => Promise.reject(new Error('NotAllowedError')), stored: { background: 'video', backgroundVideo: 'blocked.webm' } })
+const stopBlocked = blockedVideo.test.createMediaLayer()
+for (let i = 0; i < 8; i += 1) await Promise.resolve()
+assert.equal(blockedVideo.test.getScene().videoState, 'error')
+assert.equal(blockedVideo.document.body.children[0].hidden, true)
+stopBlocked()
+
+let rejectPending
+const interrupted = load({ play: () => new Promise((_resolve, reject) => { rejectPending = reject }), stored: { background: 'video', backgroundVideo: 'slow.webm' } })
+const stopInterrupted = interrupted.test.createMediaLayer()
+interrupted.test.setParam('videoPaused', true)
+rejectPending(new Error('AbortError'))
+for (let i = 0; i < 8; i += 1) await Promise.resolve()
+assert.notEqual(interrupted.test.getScene().videoState, 'error', 'intentional pause cancels a pending play without a false error')
+stopInterrupted()
 
 const pending = []
 const network = load({ fetcher: (_url, options) => new Promise((resolve, reject) => pending.push({ resolve, reject, options })) })

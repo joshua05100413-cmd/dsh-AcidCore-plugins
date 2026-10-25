@@ -10,7 +10,7 @@ import { homedir } from 'node:os'
 import { basename, extname, isAbsolute, join, relative, win32 } from 'node:path'
 import { spawn } from 'node:child_process'
 
-const VERSION = '0.3.1'
+const VERSION = '0.4.0'
 const MIME = { '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png', '.webp': 'image/webp', '.avif': 'image/avif', '.gif': 'image/gif', '.bmp': 'image/bmp' }
 const VIDEO_MIME = { '.mp4': 'video/mp4', '.m4v': 'video/mp4', '.webm': 'video/webm' }
 const MAX_IMAGE_BYTES = 32 * 1024 * 1024
