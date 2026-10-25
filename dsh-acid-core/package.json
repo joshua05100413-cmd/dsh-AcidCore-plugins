@@ -1,11 +1,12 @@
 {
   "name": "dsh-acid-core",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "private": true,
   "type": "module",
   "description": "Acid Core: a crystal startup animation, optional intro videos, six complete palettes, local wallpapers and background lettering.",
   "scripts": {
-    "test": "node validate.mjs && node test-background.mjs && node test-theme-lifecycle.mjs && node test-intro.mjs"
+    "test": "node validate.mjs && node test-background.mjs && node test-theme-lifecycle.mjs && node test-intro.mjs",
+    "test:browser": "node test-wallpaper-browser.mjs"
   },
   "main": "./index.js",
   "exports": {

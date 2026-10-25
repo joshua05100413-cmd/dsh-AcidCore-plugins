@@ -42,7 +42,7 @@ window.__ModuleLoader__.load({
     const STORAGE_KEY = 'dsh.acid-core.params'
     /** Remembers that the user chose the acid theme (it is not a host preference). */
     const THEME_FLAG = 'dsh.acid-core.theme'
-    const VERSION = '0.3.0'
+    const VERSION = '0.3.1'
 
     const DICTS = {
       zh: {
@@ -2061,6 +2061,10 @@ body[data-acid-theme-id="acid-orange-light"]{--acid-brand-hue:-24deg}
 /* The host theme presenter writes tokens inline; this override is scoped and
    reversible. It deliberately leaves every other surface token alone. */
 body[data-acid-media="on"]{--dsw-alias-bg-base:transparent !important;background:transparent !important}
+/* Windows gives AppFrame a sidebar-fill background rather than bg-base.
+   Identify the shell by its direct overlay seat, so no build hash is needed.
+   Keep sidebar, titlebar, cards and editor surfaces on their own tokens. */
+body[data-acid-media="on"] #root :has(> [data-shell-overlay]){background:transparent !important}
 #dsh-acid-media{position:fixed;inset:0;z-index:-1;overflow:hidden;
   background:var(--acid-media-ground);pointer-events:none !important}
 #dsh-acid-media [hidden],#dsh-acid-media[hidden]{display:none !important}
